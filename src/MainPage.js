@@ -4,7 +4,8 @@ import { useAsync, useMount, useUpdateEffect } from "react-use";
 import { RegexInput } from "./components/RegexInput";
 import { Button } from "./components/Button";
 import { Highlighter } from "./components/Highlighter";
-import { HighlightedText } from "./components/HighlightedText";
+import jsPDF from "jspdf";
+
 const {
   simplifyGraph,
   findSubstrings,
@@ -157,6 +158,27 @@ export const MainPage = () => {
       return updatedState;
     });
   }
+  function handleGenerateCircom(event) {
+    event.preventDefault();
+    const doc = new jsPDF();
+    const code = [];
+    code.push("pragma circom 2.1.4;");
+    code.push('include "circomlib/poseidon.circom";');
+    code.push("template Example () {");
+    code.push("\tsignal input a;");
+    code.push("\tsignal input b;");
+    code.push("\tsignal output c;");
+    code.push("\tc <== a * b;");
+    code.push("\tcomponent hash = Poseidon(2);");
+    code.push("\thash.inputs[0] <== a;");
+    code.push("\thash.inputs[1] <== b;");
+    code.push('\tlog("hash", hash.out);');
+    code.push("}");
+    code.push("");
+    const text = code.join("\n");
+    doc.text(text, 10, 10);
+    doc.save(`circom.pdf`);
+  }
   useUpdateEffect(() => {
     handleUpdateHighlight(newHighlight);
   }, [newHighlight]);
@@ -209,44 +231,52 @@ export const MainPage = () => {
         setNewColor={setNewColor}
         staticHighlights={staticHighlights}
       />{" "}
-      <h3>Extracted Subgroup:</h3>
-      {/* <div>
-        {Object.entries(newSubmatches).map(([tagname, substrings]) => (
-          <div>
-            <td>{tagname}</td>
-            <td>{substrings[0]}</td>
-            <td>,</td>
-            <td>{substrings[1]}</td>
-          </div>
-        ))}
-      </div> */}
       <div>
-        {Object.entries(tagDict).map(([dfa_match, tag_dict]) => (
-          <div>
-            <h4>DFA matched</h4>
-            <td>{dfa_match}</td>
-            <div>
-              {Object.entries(tag_dict).map(([tagNum, content]) => (
-                <div>
-                  <h5>{groupMatch[tagNum]}</h5>
+        <h3 style={{ padding: 0 }}>Extracted Subgroup:</h3>
+        <div
+          style={{
+            margin: "20px 0",
+            padding: "10px",
+            border: "1px solid white",
+            padding: 0,
+          }}
+        >
+          {Object.entries(tagDict).map(([dfa_match, tag_dict]) => (
+            <div style={{ position: "relative", padding: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: 0,
+                }}
+              >
+                <h4
+                  style={{
+                    fontWeight: "bold",
+                    marginRight: "10px",
+                  }}
+                >
+                  DFA matched:
+                </h4>
+                <h4 style={{ fontWeight: "normal" }}>{dfa_match}</h4>
+              </div>
+              <div style={{ marginLeft: "50px" }}>
+                {Object.entries(tag_dict).map(([tagNum, content]) => (
                   <div>
-                    {content.map((item) => (
-                      <h5>{item}</h5>
-                    ))}
+                    <h5>{groupMatch[tagNum]}</h5>
+                    <div style={{ marginLeft: "50px" }}>
+                      {content.map((item) => (
+                        <h5>{item}</h5>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-      {/* <HighlightedText
-        userHighlights={userHighlights}
-        DFAActiveState={AllDFAHighlights}
-        sampleText={text}
-        userColors={userColors}
-        staticHighlights={staticHighlights}
-      /> */}
+      <Button onClick={handleGenerateCircom}>Download Circom</Button>
     </Container>
   );
 };

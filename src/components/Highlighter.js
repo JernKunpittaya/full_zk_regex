@@ -127,7 +127,7 @@ export const Highlighter = ({
                 //   : "transparent",
                 color: color,
               }}
-              onClick={() => handleHighlight(index)}
+              //   onClick={() => handleHighlight(index)}
             >
               {char}
             </span>
@@ -154,7 +154,9 @@ export const Highlighter = ({
           );
         })}
       </div>
+
       <Button
+        style={{ marginTop: "20px" }}
         onClick={isHighlighting ? handleEndHighlight : handleBeginHighlight}
       >
         {isHighlighting ? "End Regex Highlight" : "Begin Regex Highlight"}
