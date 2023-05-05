@@ -19,7 +19,7 @@ function print_DFA(DFAActiveState) {
     if (!(key in result)) {
       result[key] = {};
     }
-    console.log("yo ");
+    // console.log("yo ");
     for (let state in DFAActiveState[key]) {
       // console.log("stattt: ", typeof state);
       // console.log("cb4 ", DFAActiveState[key][state]);
@@ -40,19 +40,19 @@ export const HighlightedText = ({
   staticHighlights,
 }) => {
   const standardOpacity = 0.5;
-  console.log("User high: ", userHighlights);
-  console.log("DFA checkky: ", DFAActiveState);
+  // console.log("User high: ", userHighlights);
+  // console.log("DFA checkky: ", DFAActiveState);
   // parse DFAActiveState
 
   const printed_DFA = print_DFA(DFAActiveState);
-  console.log("Last DFA: ", printed_DFA);
-  console.log(staticHighlights);
+  // console.log("Last DFA: ", printed_DFA);
+  // console.log(staticHighlights);
   const colorSegments = Object.entries(userHighlights).map(([id, indices]) => ({
     id,
     segments: indices.flat(),
   }));
   const acceptedIdx = unrollRanges(staticHighlights);
-  console.log(acceptedIdx);
+  // console.log(acceptedIdx);
   const rejTextColor = "rgba(100, 100, 100, 1)";
   const accTextColor = "rgba(255, 255, 255, 1)";
   const offTextColor = "rgba(160, 160, 160, 1)";

@@ -28,6 +28,7 @@ function unrollRanges(ranges) {
 
 export const Highlighter = ({
   sampleText,
+  sampleRegex,
   newHighlight,
   setNewHighlight,
   newColor,
@@ -42,11 +43,11 @@ export const Highlighter = ({
   // const [colors, setColors] = useState({})
   const [curColor, setCurColor] = useState("rgba(0, 0, 0, 1)");
   // const [testingOnly, setTestingOnly] = useState({})
-  console.log("highl: ", staticHighlights[0]);
-  console.log("highl: ", staticHighlights[1]);
-  console.log("highl: ", staticHighlights[2]);
+  //   console.log("highl: ", staticHighlights[0]);
+  //   console.log("highl: ", staticHighlights[1]);
+  //   console.log("highl: ", staticHighlights[2]);
   const acceptedIdx = unrollRanges(staticHighlights);
-  console.log("accepted idx: ", acceptedIdx);
+  //   console.log("accepted idx: ", acceptedIdx);
   const rejTextColor = "rgba(100, 100, 100, 1)";
   const accTextColor = "rgba(255, 255, 255, 1)";
   const offTextColor = "rgba(160, 160, 160, 1)";
@@ -95,6 +96,7 @@ export const Highlighter = ({
                 highlightedIndices.length - 1
               ],
             ];
+      //   console.log("condesedddd: ", name, " : ", condensed);
       const range = (start, end) =>
         Array.from(Array(end - start + 1).keys()).map((x) => x + start);
       // const testing = range(condensed[0], condensed[1])
@@ -110,11 +112,32 @@ export const Highlighter = ({
   return (
     <div>
       <div>
+        <h4>Regex matched:</h4>
         {sampleText.split("").map((char, index) => {
           let color = offTextColor;
           if (real) {
             color = acceptedIdx.includes(index) ? accTextColor : rejTextColor;
           }
+          return (
+            <span
+              key={index}
+              style={{
+                // backgroundColor: highlightedIndices.includes(index)
+                //   ? curColor
+                //   : "transparent",
+                color: color,
+              }}
+              onClick={() => handleHighlight(index)}
+            >
+              {char}
+            </span>
+          );
+        })}
+      </div>
+      <div>
+        <h4>Regex to be highlighted:</h4>
+        {sampleRegex.split("").map((char, index) => {
+          let color = offTextColor;
           return (
             <span
               key={index}
@@ -134,7 +157,7 @@ export const Highlighter = ({
       <Button
         onClick={isHighlighting ? handleEndHighlight : handleBeginHighlight}
       >
-        {isHighlighting ? "End Highlight" : "Begin New Highlight"}
+        {isHighlighting ? "End Regex Highlight" : "Begin Regex Highlight"}
       </Button>
     </div>
   );

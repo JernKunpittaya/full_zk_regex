@@ -5,12 +5,20 @@ import { RegexInput } from "./components/RegexInput";
 import { Button } from "./components/Button";
 import { Highlighter } from "./components/Highlighter";
 import { HighlightedText } from "./components/HighlightedText";
-const { simplifyGraph, findSubstrings } = require("./gen_dfa");
-
+const {
+  simplifyGraph,
+  findSubstrings,
+  simplifyPlus,
+  simplifyRegex,
+} = require("./gen_dfa");
+const {
+  tagged_simplifyGraph,
+  regexSubmatchState,
+} = require("./gen_tagged_dfa");
 export const MainPage = () => {
   // to be input in the future
-  const testText = "hello Jern ja I'm here";
-  const testRegex = "(h|e|l|o)*";
+  //   const testText = "hello Jern ja I'm here";
+  //   const testRegex = "(h|e|l|o)*";
   const [convertActive, setConvertActive] = useState(false);
 
   //============================ highlight states
@@ -24,6 +32,7 @@ export const MainPage = () => {
   const [text, setText] = useState("");
   //============================ regex states
   const [regex, setRegex] = useState("");
+  const [simpleRegex, setSimpleRegex] = useState("");
   const [displayMessage, setDisplayMessage] = useState("Match RegEx!");
 
   //============================ DFA states
@@ -36,24 +45,44 @@ export const MainPage = () => {
     transitions: {},
   });
   const [AllDFAHighlights, setAllDFAHighlights] = useState({});
+  // =============================Submatches
+  const [newSubmatches, setNewSubmatches] = useState({});
+  const [submatchesArr, setSubmatchesArr] = useState([]);
+  const [tagDict, setTagDict] = useState({});
+  const [groupMatch, setGroupMatch] = useState([]);
 
   function generateSegments(regex) {
-    // Generate accepted substrings and a function used to
-    // match segments and states given an index pair.
-
-    // console.log("idxPair, ", idxPair)
-
     const graph = simplifyGraph(regex);
-    const [substr, idxs] = findSubstrings(graph, text);
-
-    // function matchSegments(idxPair) {
-    //   const states = matchDFAfromSub(graph, idxs, idxPair, text);
-    //   console.log("jjjj state: ", states);
-    //   const final = matchSubfromDFA(graph, text, idxs, states);
-    //   console.log("final sub: ", final);
-    //   return [states, final];
-    // }
-    return [idxs];
+    return findSubstrings(graph, text);
+  }
+  function generateTaggedDFA(regex, submatches) {
+    const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
+    const matched_dfa = generateSegments(regex);
+    let tagged_dictionary = {};
+    for (const subs of matched_dfa[1]) {
+      let matched = text.slice(subs[0], subs[1] + 1);
+      tagged_dictionary[matched] = {};
+      let tag_result = regexSubmatchState(matched, tagged_simp_graph);
+      // now iterate through each tag result
+      for (let index in tag_result) {
+        tagged_dictionary[matched][index] = [];
+        for (
+          let groupInd = 0;
+          groupInd < tag_result[index].length;
+          groupInd++
+        ) {
+          tagged_dictionary[matched][index].push(
+            matched.slice(
+              tag_result[index][groupInd][0],
+              tag_result[index][groupInd][0] +
+                tag_result[index][groupInd].length
+            )
+          );
+        }
+      }
+    }
+    setTagDict(tagged_dictionary);
+    console.log("result tagged dict: ", tagged_dictionary);
   }
   // ========================= DFA function ======================
   function handleGenerateDFA() {
@@ -61,12 +90,16 @@ export const MainPage = () => {
     const graph = simplifyGraph(regex);
     setRawDFA(graph);
   }
+  function handleGenerateSimpleRegex() {
+    setSimpleRegex(simplifyRegex(regex));
+  }
 
   useEffect(() => {
-    // Generates DFA and renders accepted segments
+    // Renders accepted segments & create full Regex
     if (convertActive) {
       handleGenerateDFA();
-      console.log("DFA ", rawDFA); // rawDFA is always behind???? we need some argument to pass this in at a timely manner
+      handleGenerateSimpleRegex();
+      //   console.log("DFA ", rawDFA); // rawDFA is always behind???? we need some argument to pass this in at a timely manner
       handleUpdateStaticHighlight();
       setConvertActive(false);
     }
@@ -76,54 +109,75 @@ export const MainPage = () => {
 
   function handleUpdateStaticHighlight() {
     // Displaying accepted segments in input text after Regex.
-    const indices = generateSegments(regex)[0];
-    console.log("jern indices: ", indices);
-    console.log("reached");
+    const indices = generateSegments(regex)[1];
+    // console.log("jern indices: ", indices);
+    // console.log("reached");
     setStaticHighlights(indices);
   }
 
-  //   function handleUpdateHighlight(newData) {
-  //     // updates highlight on text input and also DFA
-  //     const key = Object.keys(newData)[0];
-  //     const raw = newData[key];
-  //     const processedStates = {};
-  //     const processedSegments = {};
-  //     processedSegments[key] = generateSegments(regex)[1](raw)[1];
-  //     console.log("new seg: ", processedSegments);
-  //     processedStates[key] = generateSegments(regex)[1](raw)[0];
-  //     console.log("new states: ", processedStates);
-
-  //     setUserHighlights((prevState) => {
-  //       const updatedState = { ...prevState, ...processedSegments };
-  //       return updatedState;
-  //     });
-
-  //     setAllDFAHighlights((prevState) => {
-  //       const updatedState = { ...prevState, ...processedStates };
-  //       return updatedState;
-  //     });
-  //   }
+  function handleUpdateHighlight(newData) {
+    console.log("new data: ", newData);
+    setNewSubmatches((prevState) => {
+      const updatedSubmatches = { ...prevState, ...newData };
+      return updatedSubmatches;
+    });
+  }
+  function handleUpdateSubmatch(newSubmatches) {
+    console.log("submatch change to ", newSubmatches);
+    // sort dictionary into array linked
+    let submatches_arr = [];
+    let key_arr = [];
+    for (let key in newSubmatches) {
+      key_arr.push(key);
+      submatches_arr.push([
+        parseInt(newSubmatches[key][0]),
+        parseInt(newSubmatches[key][1]),
+      ]);
+    }
+    const original = submatches_arr.slice();
+    submatches_arr.sort((a, b) => a[0] - b[0]);
+    console.log("new Submatches Array: ", submatches_arr);
+    setSubmatchesArr(submatches_arr);
+    let shuffledIndex = submatches_arr.map((item) => original.indexOf(item));
+    let group_match = [];
+    for (let ele of shuffledIndex) {
+      group_match.push(key_arr[ele]);
+    }
+    setGroupMatch(group_match);
+    // remember what each how to line up groupy stuffs
+  }
+  // Show what text corresponds to that group match
+  function handleUpdateSubmatchArr(submatchesArr) {
+    console.log("create dfa jyaa ", submatchesArr);
+    generateTaggedDFA(regex, submatchesArr);
+  }
   function handleUpdateColor(newData) {
     setUserColors((prevState) => {
       const updatedState = { ...prevState, ...newData };
       return updatedState;
     });
   }
-  //   useUpdateEffect(() => {
-  //     handleUpdateHighlight(newHighlight);
-  //   }, [newHighlight]);
+  useUpdateEffect(() => {
+    handleUpdateHighlight(newHighlight);
+  }, [newHighlight]);
 
   useUpdateEffect(() => {
     handleUpdateColor(newColor);
   }, [newColor]);
+  useUpdateEffect(() => {
+    handleUpdateSubmatch(newSubmatches);
+  }, [newSubmatches]);
+  useUpdateEffect(() => {
+    handleUpdateSubmatchArr(submatchesArr);
+  }, [submatchesArr]);
   return (
     <Container>
       <RegexInput
         label="Enter your text here:"
         value={text}
         onChange={(e) => {
-          console.log("text input: ");
-          console.log(text);
+          //   console.log("text input: ");
+          //   console.log(text);
           setText(e.currentTarget.value);
         }}
       />
@@ -131,37 +185,68 @@ export const MainPage = () => {
         label="Enter your regex here:"
         value={regex}
         onChange={(e) => {
-          console.log("regex input: ");
-          console.log(regex);
+          //   console.log("regex input: ");
+          //   console.log(regex);
           setRegex(e.currentTarget.value);
         }}
       />
       <Button
         disabled={displayMessage != "Match RegEx!" || regex.length === 0}
         onClick={async () => {
-          console.log("yes");
+          //   console.log("yes");
           setConvertActive(true);
           setDisplayMessage("Match RegEx!");
         }}
       >
         {displayMessage}
       </Button>
-      <h4>Regex matched:</h4>
       <Highlighter
         sampleText={text}
+        sampleRegex={simpleRegex}
         newHighlight={{}}
         setNewHighlight={setNewHighlight}
         newColor={{}}
         setNewColor={setNewColor}
         staticHighlights={staticHighlights}
       />{" "}
-      <HighlightedText
+      <h3>Extracted Subgroup:</h3>
+      {/* <div>
+        {Object.entries(newSubmatches).map(([tagname, substrings]) => (
+          <div>
+            <td>{tagname}</td>
+            <td>{substrings[0]}</td>
+            <td>,</td>
+            <td>{substrings[1]}</td>
+          </div>
+        ))}
+      </div> */}
+      <div>
+        {Object.entries(tagDict).map(([dfa_match, tag_dict]) => (
+          <div>
+            <h4>DFA matched</h4>
+            <td>{dfa_match}</td>
+            <div>
+              {Object.entries(tag_dict).map(([tagNum, content]) => (
+                <div>
+                  <h5>{groupMatch[tagNum]}</h5>
+                  <div>
+                    {content.map((item) => (
+                      <h5>{item}</h5>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* <HighlightedText
         userHighlights={userHighlights}
         DFAActiveState={AllDFAHighlights}
         sampleText={text}
         userColors={userColors}
         staticHighlights={staticHighlights}
-      />
+      /> */}
     </Container>
   );
 };
