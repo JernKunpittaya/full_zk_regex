@@ -5,6 +5,8 @@ import { RegexInput } from "./components/RegexInput";
 import { Button } from "./components/Button";
 import { Highlighter } from "./components/Highlighter";
 import jsPDF from "jspdf";
+import { gen_circom } from "./gen_circom";
+import { saveAs } from "file-saver";
 
 const {
   simplifyGraph,
@@ -15,6 +17,8 @@ const {
 const {
   tagged_simplifyGraph,
   regexSubmatchState,
+  findMatchStateTagged,
+  formatForCircom,
 } = require("./gen_tagged_dfa");
 export const MainPage = () => {
   // to be input in the future
@@ -160,24 +164,28 @@ export const MainPage = () => {
   }
   function handleGenerateCircom(event) {
     event.preventDefault();
-    const doc = new jsPDF();
-    const code = [];
-    code.push("pragma circom 2.1.4;");
-    code.push('include "circomlib/poseidon.circom";');
-    code.push("template Example () {");
-    code.push("\tsignal input a;");
-    code.push("\tsignal input b;");
-    code.push("\tsignal output c;");
-    code.push("\tc <== a * b;");
-    code.push("\tcomponent hash = Poseidon(2);");
-    code.push("\thash.inputs[0] <== a;");
-    code.push("\thash.inputs[1] <== b;");
-    code.push('\tlog("hash", hash.out);');
-    code.push("}");
-    code.push("");
-    const text = code.join("\n");
-    doc.text(text, 10, 10);
-    doc.save(`circom.pdf`);
+    // const doc = new jsPDF();
+    // doc.setFont("helvetica", "normal"); // Set font family and style
+    // doc.setFontSize(14);
+    // const text = gen_circom();
+    const tagged_simp_graph = tagged_simplifyGraph(regex, submatchesArr);
+    let text = "";
+    // define group number and name
+    // ONE DFA MATCHED
+    // for (let key in Object.values(tagDict)[0]) {
+    //   text += "Group " + key + " : " + groupMatch[key] + "\n";
+    // }
+    let final_graph = findMatchStateTagged(tagged_simp_graph);
+    let graphforCircom = formatForCircom(final_graph);
+    let forward_tran = graphforCircom["forward_transitions"];
+    let rev_tran = graphforCircom["rev_transitions"];
+    text += "\n\n\n\n" + gen_circom(final_graph, rev_tran);
+
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, "circom.txt");
+    // const lines = doc.splitTextToSize(text, 150);
+    // doc.text(lines, 10, 10);
+    // doc.save(`circom.pdf`);
   }
   useUpdateEffect(() => {
     handleUpdateHighlight(newHighlight);
