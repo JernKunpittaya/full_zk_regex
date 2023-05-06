@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import styled, { CSSProperties } from "styled-components";
-import { useAsync, useMount, useUpdateEffect } from "react-use";
+import { useUpdateEffect } from "react-use";
 import { RegexInput } from "./components/RegexInput";
 import { Button } from "./components/Button";
 import { Highlighter } from "./components/Highlighter";
-import jsPDF from "jspdf";
 import { gen_circom } from "./gen_circom";
 import { saveAs } from "file-saver";
+import { genInputzkRepl } from "./gen_msg_zkrepl";
 
 const {
   simplifyGraph,
@@ -55,6 +55,10 @@ export const MainPage = () => {
   const [submatchesArr, setSubmatchesArr] = useState([]);
   const [tagDict, setTagDict] = useState({});
   const [groupMatch, setGroupMatch] = useState([]);
+
+  //==============================zkREPL
+  const [replMsg, setReplMsg] = useState("");
+  const [replMsgLen, setReplMsgLen] = useState("");
 
   function generateSegments(regex) {
     const graph = simplifyGraph(regex);
@@ -164,29 +168,24 @@ export const MainPage = () => {
   }
   function handleGenerateCircom(event) {
     event.preventDefault();
-    // const doc = new jsPDF();
-    // doc.setFont("helvetica", "normal"); // Set font family and style
-    // doc.setFontSize(14);
-    // const text = gen_circom();
     const tagged_simp_graph = tagged_simplifyGraph(regex, submatchesArr);
-    let text = "";
-    // define group number and name
-    // ONE DFA MATCHED
-    // for (let key in Object.values(tagDict)[0]) {
-    //   text += "Group " + key + " : " + groupMatch[key] + "\n";
-    // }
     let final_graph = findMatchStateTagged(tagged_simp_graph);
     let graphforCircom = formatForCircom(final_graph);
-    let forward_tran = graphforCircom["forward_transitions"];
     let rev_tran = graphforCircom["rev_transitions"];
-    text += "\n\n\n\n" + gen_circom(final_graph, rev_tran);
-
+    const text = "\n\n\n\n" + gen_circom(final_graph, rev_tran);
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     saveAs(blob, "circom.txt");
-    // const lines = doc.splitTextToSize(text, 150);
-    // doc.text(lines, 10, 10);
-    // doc.save(`circom.pdf`);
   }
+
+  function handleGenMsgRepl(event) {
+    event.preventDefault();
+    const blob = new Blob(
+      [JSON.stringify(genInputzkRepl(replMsg, replMsgLen))],
+      { type: "text/plain;charset=utf-8" }
+    );
+    saveAs(blob, "msg.txt");
+  }
+
   useUpdateEffect(() => {
     handleUpdateHighlight(newHighlight);
   }, [newHighlight]);
@@ -202,6 +201,7 @@ export const MainPage = () => {
   }, [submatchesArr]);
   return (
     <Container>
+      <h1>ZK RegEX</h1>
       <RegexInput
         label="Enter your text here:"
         value={text}
@@ -271,7 +271,25 @@ export const MainPage = () => {
               <div style={{ marginLeft: "50px" }}>
                 {Object.entries(tag_dict).map(([tagNum, content]) => (
                   <div>
-                    <h5>{groupMatch[tagNum]}</h5>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        padding: 0,
+                      }}
+                    >
+                      <h5
+                        style={{
+                          fontWeight: "bold",
+                          marginRight: "10px",
+                        }}
+                      >
+                        {groupMatch[tagNum]}
+                      </h5>
+                      <h4 style={{ fontWeight: "normal" }}>
+                        (Group: {tagNum})
+                      </h4>
+                    </div>
                     <div style={{ marginLeft: "50px" }}>
                       {content.map((item) => (
                         <h5>{item}</h5>
@@ -285,6 +303,22 @@ export const MainPage = () => {
         </div>
       </div>
       <Button onClick={handleGenerateCircom}>Download Circom</Button>
+      <h2 style={{ fontWeight: "normal" }}>Msg generator for zkREPL</h2>
+      <div>
+        <input
+          type="text"
+          placeholder="msg"
+          value={replMsg}
+          onChange={(e) => setReplMsg(e.target.value)}
+        />
+        <input
+          type="number"
+          placeholder="msg max length"
+          value={replMsgLen}
+          onChange={(e) => setReplMsgLen(e.target.value)}
+        />
+        <button onClick={handleGenMsgRepl}>Download msg for zkREPL</button>
+      </div>
     </Container>
   );
 };

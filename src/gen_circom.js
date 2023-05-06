@@ -366,6 +366,10 @@ function gen_circom(final_graph, rev_tran) {
   tpl_end.push("group_match_count <== count;");
   tpl_end.push("start_idx <== start_index;");
   final_text += tpl_end.join("\n\t") + "\n}";
+
+  // add main function
+  final_text +=
+    "\n\ncomponent main { public [msg, match_idx] } = Regex(1536,44,2);";
   return final_text;
 }
 module.exports = { gen_circom };
