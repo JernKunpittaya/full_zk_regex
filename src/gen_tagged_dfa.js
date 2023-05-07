@@ -7,7 +7,6 @@ import {
   simplifyRegex,
   findSubstrings,
 } from "./gen_dfa";
-const regexpTree = require("regexp-tree");
 
 export function tagged_nfaToDfa(nfa) {
   "use strict";
@@ -167,16 +166,16 @@ export function tagged_compile(regex, submatches) {
   return graph;
 }
 export function tagged_simplifyGraph(regex, submatches) {
-  let after_plus = simplifyPlus(simplifyRegex(regex), submatches);
-  const regex_spec = after_plus["regex"];
-  const ast = regexpTree.parse(`/${regex_spec}/`);
-  regexpTree.traverse(ast, {
-    "*": function ({ node }) {
-      if (node.type === "CharacterClass") {
-        throw new Error("CharacterClass not supported");
-      }
-    },
-  });
+  //   let after_plus = simplifyPlus(simplifyRegex(regex), submatches);
+  //   const regex_spec = after_plus["regex"];
+  //   const ast = regexpTree.parse(`/${regex_spec}/`);
+  //   regexpTree.traverse(ast, {
+  //     "*": function ({ node }) {
+  //       if (node.type === "CharacterClass") {
+  //         throw new Error("CharacterClass not supported");
+  //       }
+  //     },
+  //   });
 
   //   const graph_json = tagged_compile(regex_spec);
   const graph_json = tagged_compile(regex, submatches);

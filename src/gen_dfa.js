@@ -1,7 +1,4 @@
 import { regexToNfa, minDfa, nfaToDfa } from "./lexical";
-// const gen = require("./gen");
-// const path = require("path");
-const regexpTree = require("regexp-tree");
 
 const a2z = "a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z";
 const A2Z = "A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z";
@@ -306,14 +303,14 @@ function compile(regex) {
 }
 export function simplifyGraph(regex) {
   const regex_spec = simplifyRegex(regex);
-  const ast = regexpTree.parse(`/${regex_spec}/`);
-  regexpTree.traverse(ast, {
-    "*": function ({ node }) {
-      if (node.type === "CharacterClass") {
-        throw new Error("CharacterClass not supported");
-      }
-    },
-  });
+  //   const ast = regexpTree.parse(`/${regex_spec}/`);
+  //   regexpTree.traverse(ast, {
+  //     "*": function ({ node }) {
+  //       if (node.type === "CharacterClass") {
+  //         throw new Error("CharacterClass not supported");
+  //       }
+  //     },
+  //   });
 
   const graph_json = compile(regex_spec);
   // console.log("jern here");
