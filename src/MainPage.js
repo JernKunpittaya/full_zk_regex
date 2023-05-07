@@ -57,32 +57,17 @@ export const MainPage = () => {
 
   function generateSegments(regex) {
     const graph = simplifyGraph(
-      regex
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\\r/g, "\n")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
+      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
     );
     return findSubstrings(graph, text);
   }
   function generateTaggedDFA(regex, submatches) {
     const tagged_simp_graph = tagged_simplifyGraph(
-      regex
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\\r/g, "\n")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c"),
+      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"),
       submatches
     );
     const matched_dfa = generateSegments(
-      regex
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\\r/g, "\n")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
+      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
     );
     let tagged_dictionary = {};
     for (const subs of matched_dfa[1]) {
@@ -114,12 +99,7 @@ export const MainPage = () => {
   function handleGenerateDFA() {
     // Generate graph parameters
     const graph = simplifyGraph(
-      regex
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\\r/g, "\n")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
+      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
     );
     setRawDFA(graph);
   }
@@ -129,9 +109,6 @@ export const MainPage = () => {
     // console.log("simp22: ", simplifyRegex(regex.replace(/\\n/g, "\n")));
     setSimpleRegex(
       simplifyRegex(regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"))
-        .replace(/\\\r/g, "\n")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
     );
   }
 
@@ -201,12 +178,7 @@ export const MainPage = () => {
   function handleGenerateCircom(event) {
     event.preventDefault();
     const tagged_simp_graph = tagged_simplifyGraph(
-      regex
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\\r/g, "\n")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c"),
+      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"),
       submatchesArr
     );
     let final_graph = findMatchStateTagged(tagged_simp_graph);
@@ -352,20 +324,22 @@ export const MainPage = () => {
       </div>
       <Button onClick={handleGenerateCircom}>Download Circom</Button>
       <h2 style={{ fontWeight: "normal" }}>Msg generator for zkREPL</h2>
-      <div>
-        <input
-          type="text"
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <textarea
           placeholder="msg"
           value={replMsg}
           onChange={(e) => setReplMsg(e.target.value)}
         />
         <input
+          style={{ maxWidth: "200px" }}
           type="number"
           placeholder="msg max length"
           value={replMsgLen}
           onChange={(e) => setReplMsgLen(e.target.value)}
         />
-        <button onClick={handleGenMsgRepl}>Download msg for zkREPL</button>
+        <button style={{ maxWidth: "200px" }} onClick={handleGenMsgRepl}>
+          Download msg for zkREPL
+        </button>
       </div>
     </Container>
   );

@@ -1,8 +1,12 @@
 export function genInputzkRepl(text, len) {
-  let result = new Array(len).fill("");
+  let result = [];
   for (let i = 0; i < text.length; i++) {
-    result[i] = text.charCodeAt(i).toString();
+    result.push(text.charCodeAt(i).toString());
   }
+  for (let j = text.length; j < len; j++) {
+    result.push("");
+  }
+  // console.log("ress: ", result);
   return result;
 }
 
