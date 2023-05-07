@@ -557,7 +557,8 @@ export function regexSubmatchState(text, tagged_simp_graph) {
   let final_graph = findMatchStateTagged(tagged_simp_graph);
   let allTags = final_graph["tags"];
   let transitions = final_graph["transitions"];
-  console.log("final: ", final_graph);
+  console.log("final, gen_tagged_dfa: ", final_graph);
+  console.log("text, gen_tagged: ", text);
   //   console.log("tran: ", transitions);
   //   console.log("all tags: ", allTags);
   let submatch = {};
@@ -565,7 +566,7 @@ export function regexSubmatchState(text, tagged_simp_graph) {
   let latest_arr = {};
   for (const tag in allTags) {
     submatch[tag] = [];
-    latest_ele[tag] = 0;
+    latest_ele[tag] = -2;
     latest_arr[tag] = -1;
   }
   // run through Transition
@@ -578,7 +579,6 @@ export function regexSubmatchState(text, tagged_simp_graph) {
       ) {
         if (i == latest_ele[tag] + 1) {
           submatch[tag][latest_arr[tag]].push(i);
-          latest_ele[tag] = i;
         } else {
           submatch[tag].push([i]);
           latest_arr[tag] += 1;

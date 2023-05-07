@@ -80,7 +80,7 @@ export function simplifyRegex(str) {
         if (currChar === "|") {
           currChar = "\\|";
         }
-        // } else if (currChar === "n") {
+        // else if (currChar === "n") {
         //   currChar = "\\n";
         // } else if (currChar === "t") {
         //   currChar = "\\t";
@@ -93,7 +93,7 @@ export function simplifyRegex(str) {
     }
     return result.replaceAll("(|", "(");
   }
-
+  //   console.log("adsfad: ", addPipeInsideBrackets(combined_nosep));
   return addPipeInsideBrackets(combined_nosep);
 }
 export function simplifyPlus(regex, submatches) {

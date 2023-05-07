@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled, { CSSProperties } from "styled-components";
 import { useUpdateEffect } from "react-use";
 import { RegexInput } from "./components/RegexInput";
+import { TextInput } from "./components/TextInput";
 import { Button } from "./components/Button";
 import { Highlighter } from "./components/Highlighter";
 import { saveAs } from "file-saver";
@@ -55,12 +56,34 @@ export const MainPage = () => {
   const [replMsgLen, setReplMsgLen] = useState("");
 
   function generateSegments(regex) {
-    const graph = simplifyGraph(regex);
+    const graph = simplifyGraph(
+      regex
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\r/g, "\n")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
+    );
     return findSubstrings(graph, text);
   }
   function generateTaggedDFA(regex, submatches) {
-    const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-    const matched_dfa = generateSegments(regex);
+    const tagged_simp_graph = tagged_simplifyGraph(
+      regex
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\r/g, "\n")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c"),
+      submatches
+    );
+    const matched_dfa = generateSegments(
+      regex
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\r/g, "\n")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
+    );
     let tagged_dictionary = {};
     for (const subs of matched_dfa[1]) {
       let matched = text.slice(subs[0], subs[1] + 1);
@@ -90,11 +113,26 @@ export const MainPage = () => {
   // ========================= DFA function ======================
   function handleGenerateDFA() {
     // Generate graph parameters
-    const graph = simplifyGraph(regex);
+    const graph = simplifyGraph(
+      regex
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\r/g, "\n")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
+    );
     setRawDFA(graph);
   }
   function handleGenerateSimpleRegex() {
-    setSimpleRegex(simplifyRegex(regex));
+    // console.log("b4: ", regex);
+    // console.log("simppp: ", simplifyRegex(regex));
+    // console.log("simp22: ", simplifyRegex(regex.replace(/\\n/g, "\n")));
+    setSimpleRegex(
+      simplifyRegex(regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"))
+        .replace(/\\\r/g, "\n")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
+    );
   }
 
   useEffect(() => {
@@ -119,14 +157,14 @@ export const MainPage = () => {
   }
 
   function handleUpdateHighlight(newData) {
-    console.log("new data: ", newData);
+    // console.log("new data: ", newData);
     setNewSubmatches((prevState) => {
       const updatedSubmatches = { ...prevState, ...newData };
       return updatedSubmatches;
     });
   }
   function handleUpdateSubmatch(newSubmatches) {
-    console.log("submatch change to ", newSubmatches);
+    // console.log("submatch change to ", newSubmatches);
     // sort dictionary into array linked
     let submatches_arr = [];
     let key_arr = [];
@@ -151,7 +189,7 @@ export const MainPage = () => {
   }
   // Show what text corresponds to that group match
   function handleUpdateSubmatchArr(submatchesArr) {
-    console.log("create dfa jyaa ", submatchesArr);
+    // console.log("create dfa jyaa ", submatchesArr);
     generateTaggedDFA(regex, submatchesArr);
   }
   function handleUpdateColor(newData) {
@@ -162,7 +200,15 @@ export const MainPage = () => {
   }
   function handleGenerateCircom(event) {
     event.preventDefault();
-    const tagged_simp_graph = tagged_simplifyGraph(regex, submatchesArr);
+    const tagged_simp_graph = tagged_simplifyGraph(
+      regex
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\r/g, "\n")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c"),
+      submatchesArr
+    );
     let final_graph = findMatchStateTagged(tagged_simp_graph);
     let graphforCircom = formatForCircom(final_graph);
     let rev_tran = graphforCircom["rev_transitions"];
@@ -196,7 +242,7 @@ export const MainPage = () => {
   return (
     <Container>
       <h1>ZK RegEX</h1>
-      <RegexInput
+      <TextInput
         label="Enter your text here:"
         value={text}
         onChange={(e) => {
@@ -205,13 +251,15 @@ export const MainPage = () => {
           setText(e.currentTarget.value);
         }}
       />
+      {/* <pre>{text}</pre> */}
       <RegexInput
         label="Enter your regex here:"
         value={regex}
         onChange={(e) => {
-          //   console.log("regex input: ");
-          //   console.log(regex);
+          //   console.log("jernjaa input: ");
+          //   console.log(e.currentTarget.value);
           setRegex(e.currentTarget.value);
+          //   console.log("regex ", regex);
         }}
       />
       <Button
@@ -224,6 +272,8 @@ export const MainPage = () => {
       >
         {displayMessage}
       </Button>
+      {/* <h4>{regex}</h4>
+      <h4>{simpleRegex}</h4> */}
       <Highlighter
         sampleText={text}
         sampleRegex={simpleRegex}
@@ -260,7 +310,9 @@ export const MainPage = () => {
                 >
                   DFA matched:
                 </h4>
-                <h4 style={{ fontWeight: "normal" }}>{dfa_match}</h4>
+                <pre>
+                  <h4 style={{ fontWeight: "normal" }}>{dfa_match}</h4>
+                </pre>
               </div>
               <div style={{ marginLeft: "50px" }}>
                 {Object.entries(tag_dict).map(([tagNum, content]) => (
@@ -284,11 +336,13 @@ export const MainPage = () => {
                         (Group: {tagNum})
                       </h4>
                     </div>
-                    <div style={{ marginLeft: "50px" }}>
-                      {content.map((item) => (
-                        <h5>{item}</h5>
-                      ))}
-                    </div>
+                    <pre>
+                      <div style={{ marginLeft: "50px" }}>
+                        {content.map((item) => (
+                          <h5>{item}</h5>
+                        ))}
+                      </div>
+                    </pre>
                   </div>
                 ))}
               </div>

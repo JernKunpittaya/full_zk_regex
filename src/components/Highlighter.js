@@ -52,7 +52,7 @@ export const Highlighter = ({
   const accTextColor = "rgba(255, 255, 255, 1)";
   const offTextColor = "rgba(160, 160, 160, 1)";
   const real = acceptedIdx.length > 0;
-
+  //   console.log("hey jern: ", sampleRegex);
   const handleHighlight = (index) => {
     if (isHighlighting) {
       if (highlightedIndices.includes(index)) {
@@ -113,46 +113,46 @@ export const Highlighter = ({
     <div>
       <div>
         <h4>Regex matched:</h4>
-        {sampleText.split("").map((char, index) => {
-          let color = offTextColor;
-          if (real) {
-            color = acceptedIdx.includes(index) ? accTextColor : rejTextColor;
-          }
-          return (
-            <span
-              key={index}
-              style={{
-                // backgroundColor: highlightedIndices.includes(index)
-                //   ? curColor
-                //   : "transparent",
-                color: color,
-              }}
-              //   onClick={() => handleHighlight(index)}
-            >
-              {char}
-            </span>
-          );
-        })}
+        <pre>
+          {sampleText.split("").map((char, index) => {
+            let color = offTextColor;
+            if (real) {
+              color = acceptedIdx.includes(index) ? accTextColor : rejTextColor;
+            }
+            return (
+              <span
+                key={index}
+                style={{
+                  color: color,
+                }}
+              >
+                {char}
+              </span>
+            );
+          })}
+        </pre>
       </div>
       <div>
         <h4>Regex to be highlighted:</h4>
-        {sampleRegex.split("").map((char, index) => {
-          let color = offTextColor;
-          return (
-            <span
-              key={index}
-              style={{
-                backgroundColor: highlightedIndices.includes(index)
-                  ? curColor
-                  : "transparent",
-                color: color,
-              }}
-              onClick={() => handleHighlight(index)}
-            >
-              {char}
-            </span>
-          );
-        })}
+        <pre>
+          {sampleRegex.split("").map((char, index) => {
+            let color = offTextColor;
+            return (
+              <span
+                key={index}
+                style={{
+                  backgroundColor: highlightedIndices.includes(index)
+                    ? curColor
+                    : "transparent",
+                  color: color,
+                }}
+                onClick={() => handleHighlight(index)}
+              >
+                {char}
+              </span>
+            );
+          })}
+        </pre>
       </div>
 
       <Button
