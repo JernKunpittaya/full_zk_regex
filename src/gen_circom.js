@@ -1,4 +1,4 @@
-function gen_circom(final_graph, rev_tran) {
+export function gen_circom(final_graph, rev_tran) {
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];
@@ -372,4 +372,4 @@ function gen_circom(final_graph, rev_tran) {
     "\n\ncomponent main { public [msg, match_idx] } = Regex(1536,44,2);";
   return final_text;
 }
-module.exports = { gen_circom };
+// module.exports = { gen_circom };

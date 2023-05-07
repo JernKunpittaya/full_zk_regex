@@ -21,7 +21,7 @@
  * @return {string|object} Returns a string that is an error message if failed to parse the expression,
  *                         otherwise returns an object which is the syntax tree.
  */
-function parseRegex(text) {
+export function parseRegex(text) {
   "use strict";
   function parseSub(text, begin, end, first) {
     var i,
@@ -201,7 +201,7 @@ function parseRegex(text) {
  * @param {string} text @see parseRegex()
  * @return {object|string}
  */
-function regexToNfa(text) {
+export function regexToNfa(text) {
   "use strict";
   function generateGraph(node, start, end, count) {
     var i, last, temp, tempStart, tempEnd;
@@ -274,7 +274,7 @@ function regexToNfa(text) {
  * @param {object} nfa @see regexToNfa(), the function assumes that the given NFA is valid.
  * @return {object} dfa Returns the first element of the DFA.
  */
-function nfaToDfa(nfa) {
+export function nfaToDfa(nfa) {
   "use strict";
   function getClosure(nodes) {
     var i,
@@ -391,7 +391,7 @@ function nfaToDfa(nfa) {
  * @param {object} dfa @see nfaToDfa(), the function assumes that the given DFA is valid.
  * @return {object} dfa Returns the first element of the minimum DFA.
  */
-function minDfa(dfa) {
+export function minDfa(dfa) {
   "use strict";
   function getReverseEdges(start) {
     var i,
@@ -610,9 +610,9 @@ function minDfa(dfa) {
 }
 
 // only change is export parseRegex
-module.exports = {
-  parseRegex,
-  regexToNfa,
-  minDfa,
-  nfaToDfa,
-};
+// module.exports = {
+//   parseRegex,
+//   regexToNfa,
+//   minDfa,
+//   nfaToDfa,
+// };

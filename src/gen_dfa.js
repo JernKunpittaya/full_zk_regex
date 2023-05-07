@@ -1,4 +1,4 @@
-const lexical = require("./lexical");
+import { regexToNfa, minDfa, nfaToDfa } from "./lexical";
 // const gen = require("./gen");
 // const path = require("path");
 const regexpTree = require("regexp-tree");
@@ -25,7 +25,7 @@ const A2Z_nosep = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const r0to9_nosep = "0123456789";
 const email_address_regex = `([a-zA-Z0-9._%\\+-]+@[a-zA-Z0-9.-]+.[a-zA-Z0-9]+)`;
 
-function simplifyRegex(str) {
+export function simplifyRegex(str) {
   // Replace all A-Z with A2Z etc
   let combined_nosep = str
     .replaceAll("A-Z", A2Z_nosep)
@@ -99,7 +99,7 @@ function simplifyRegex(str) {
 
   return addPipeInsideBrackets(combined_nosep);
 }
-function simplifyPlus(regex, submatches) {
+export function simplifyPlus(regex, submatches) {
   // console.log("og submatches: ", submatches);
   let stack = [];
   let new_submatches = {};
@@ -244,7 +244,7 @@ function findIndex(arr, num) {
   return arr[mid] < num ? mid + 1 : mid;
 }
 
-function toNature(col) {
+export function toNature(col) {
   let i,
     j,
     base = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -259,8 +259,8 @@ function toNature(col) {
   return result;
 }
 function compile(regex) {
-  let nfa = lexical.regexToNfa(regex);
-  let dfa = lexical.minDfa(lexical.nfaToDfa(nfa));
+  let nfa = regexToNfa(regex);
+  let dfa = minDfa(nfaToDfa(nfa));
 
   let i,
     j,
@@ -304,7 +304,7 @@ function compile(regex) {
   //   console.log("lexical out: ", JSON.stringify(graph));
   return graph;
 }
-function simplifyGraph(regex) {
+export function simplifyGraph(regex) {
   const regex_spec = simplifyRegex(regex);
   const ast = regexpTree.parse(`/${regex_spec}/`);
   regexpTree.traverse(ast, {
@@ -372,7 +372,7 @@ function accepts(simp_graph, str) {
   }
   return simp_graph["accepted_states"].has(state);
 }
-function findSubstrings(simp_graph, text) {
+export function findSubstrings(simp_graph, text) {
   const substrings = [];
   const indexes = [];
   for (let i = 0; i < text.length; i++) {
@@ -389,10 +389,10 @@ function findSubstrings(simp_graph, text) {
   return [substrings, indexes];
 }
 
-module.exports = {
-  simplifyGraph,
-  findSubstrings,
-  simplifyRegex,
-  simplifyPlus,
-  toNature,
-};
+// module.exports = {
+//   simplifyGraph,
+//   findSubstrings,
+//   simplifyRegex,
+//   simplifyPlus,
+//   toNature,
+// };

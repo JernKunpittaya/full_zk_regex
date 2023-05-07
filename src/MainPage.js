@@ -4,22 +4,16 @@ import { useUpdateEffect } from "react-use";
 import { RegexInput } from "./components/RegexInput";
 import { Button } from "./components/Button";
 import { Highlighter } from "./components/Highlighter";
-import { gen_circom } from "./gen_circom";
 import { saveAs } from "file-saver";
 import { genInputzkRepl } from "./gen_msg_zkrepl";
-
-const {
-  simplifyGraph,
-  findSubstrings,
-  simplifyPlus,
-  simplifyRegex,
-} = require("./gen_dfa");
-const {
+import { gen_circom } from "./gen_circom";
+import { simplifyGraph, findSubstrings, simplifyRegex } from "./gen_dfa";
+import {
   tagged_simplifyGraph,
   regexSubmatchState,
   findMatchStateTagged,
   formatForCircom,
-} = require("./gen_tagged_dfa");
+} from "./gen_tagged_dfa";
 export const MainPage = () => {
   // to be input in the future
   //   const testText = "hello Jern ja I'm here";
@@ -172,7 +166,7 @@ export const MainPage = () => {
     let final_graph = findMatchStateTagged(tagged_simp_graph);
     let graphforCircom = formatForCircom(final_graph);
     let rev_tran = graphforCircom["rev_transitions"];
-    const text = "\n\n\n\n" + gen_circom(final_graph, rev_tran);
+    const text = gen_circom(final_graph, rev_tran);
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     saveAs(blob, "circom.txt");
   }

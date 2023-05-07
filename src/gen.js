@@ -1,6 +1,6 @@
 // gen DFA, tagged version
-const lexical = require("./lexical");
-const gen_dfa = require("./gen_dfa");
+import { parseRegex } from "./lexical";
+import { simplifyPlus, simplifyRegex } from "./gen_dfa";
 // const path = require("path");
 const regexpTree = require("regexp-tree");
 
@@ -72,7 +72,7 @@ function checkEndGroup(index, submatches) {
 // create M1 from regex
 // text is basically the naive regex
 // submatches = [[begin1, end1], [begin2, end2], ...]
-function regexToM1(text, submatches) {
+export function regexToM1(text, submatches) {
   "use strict";
   function generateGraph(node, start, end, count, submatches, memS, memE) {
     let i,
@@ -255,13 +255,10 @@ function regexToM1(text, submatches) {
   }
 
   // New: simplifyRegex and simplify Plus
-  let after_plus = gen_dfa.simplifyPlus(
-    gen_dfa.simplifyRegex(text),
-    submatches
-  );
+  let after_plus = simplifyPlus(simplifyRegex(text), submatches);
 
   // console.log("afterrr; ", after_plus["submatches"]);
-  let ast = lexical.parseRegex(after_plus["regex"]),
+  let ast = parseRegex(after_plus["regex"]),
     start = { type: "start", edges: [] },
     accept = { type: "accept", edges: [] };
   // console.log("Before plus: ", gen_dfa.simplifyRegex(text));
@@ -281,7 +278,7 @@ function regexToM1(text, submatches) {
   return start;
 }
 // simplify M1 to readable format, not just node points to each other
-function simplifyM1(m1) {
+export function simplifyM1(m1) {
   function read_M1(m1, q1, trans, accepted) {
     if (q1.has(m1.id)) {
       // console.log("exist already, id: ", m1.id);
@@ -309,10 +306,10 @@ function simplifyM1(m1) {
   return { q1: q1, accepted: accepted, trans: trans };
 }
 
-function readSubmatch(regex, submatches) {
-  regex = gen_dfa.simplifyRegex(regex);
+export function readSubmatch(regex, submatches) {
+  regex = simplifyRegex(regex);
   // console.log("og regex: ", regex);
-  let after_plus = gen_dfa.simplifyPlus(regex, submatches);
+  let after_plus = simplifyPlus(regex, submatches);
   // console.log("after plus: ", after_plus);
   let final_regex = after_plus["regex_show"];
   let final_submatches = after_plus["final_submatches"];
@@ -377,8 +374,8 @@ function readSubmatch(regex, submatches) {
   console.log("final regex: ", final_result);
 }
 // function
-module.exports = {
-  readSubmatch,
-  regexToM1,
-  simplifyM1,
-};
+// module.exports = {
+//   readSubmatch,
+//   regexToM1,
+//   simplifyM1,
+// };

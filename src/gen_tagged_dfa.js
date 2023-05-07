@@ -1,9 +1,15 @@
-const gen = require("./gen");
-const lexical = require("./lexical");
-const gen_dfa = require("./gen_dfa");
+import { regexToM1 } from "./gen";
+import { minDfa } from "./lexical";
+import {
+  toNature,
+  simplifyGraph,
+  simplifyPlus,
+  simplifyRegex,
+  findSubstrings,
+} from "./gen_dfa";
 const regexpTree = require("regexp-tree");
 
-function tagged_nfaToDfa(nfa) {
+export function tagged_nfaToDfa(nfa) {
   "use strict";
   function getClosure(nodes) {
     let i,
@@ -114,9 +120,9 @@ function tagged_nfaToDfa(nfa) {
   return first;
 }
 
-function tagged_compile(regex, submatches) {
-  let nfa = gen.regexToM1(regex, submatches);
-  let dfa = lexical.minDfa(tagged_nfaToDfa(nfa));
+export function tagged_compile(regex, submatches) {
+  let nfa = regexToM1(regex, submatches);
+  let dfa = minDfa(tagged_nfaToDfa(nfa));
 
   let i,
     j,
@@ -130,7 +136,7 @@ function tagged_compile(regex, submatches) {
     top = stack.pop();
     if (!states.hasOwnProperty(top.id)) {
       states[top.id] = top;
-      top.nature = gen_dfa.toNature(top.id);
+      top.nature = toNature(top.id);
       nodes.push(top);
       for (i = 0; i < top.edges.length; i += 1) {
         if (top.edges[i][0] !== "ϵ" && symbols.indexOf(top.edges[i][0]) < 0) {
@@ -160,11 +166,8 @@ function tagged_compile(regex, submatches) {
   //   console.log("lexical out: ", JSON.stringify(graph));
   return graph;
 }
-function tagged_simplifyGraph(regex, submatches) {
-  let after_plus = gen_dfa.simplifyPlus(
-    gen_dfa.simplifyRegex(regex),
-    submatches
-  );
+export function tagged_simplifyGraph(regex, submatches) {
+  let after_plus = simplifyPlus(simplifyRegex(regex), submatches);
   const regex_spec = after_plus["regex"];
   const ast = regexpTree.parse(`/${regex_spec}/`);
   regexpTree.traverse(ast, {
@@ -221,7 +224,7 @@ function tagged_simplifyGraph(regex, submatches) {
 // memTags {tag1: set("[from1, to1]","[from2, to2]"", ...), tag2: [...]}
 // memTag {tag1: }
 // boolTag{tag1: true, tag2: False}
-function findMatchStateTagged(tagged_dfa) {
+export function findMatchStateTagged(tagged_dfa) {
   // run each tag separately
   let tranGraph = tagged_dfa["transitions"];
   let allTags = {};
@@ -551,7 +554,7 @@ function findInsertionIndex(arr, target) {
 
 // // return all indexes that is included in a certain subgroup match.
 // text is already matched by plain DFA!
-function regexSubmatchState(text, tagged_simp_graph) {
+export function regexSubmatchState(text, tagged_simp_graph) {
   let final_graph = findMatchStateTagged(tagged_simp_graph);
   let allTags = final_graph["tags"];
   let transitions = final_graph["transitions"];
@@ -589,12 +592,12 @@ function regexSubmatchState(text, tagged_simp_graph) {
   return submatch;
 }
 
-function finalRegexExtractState(regex, submatches, text) {
-  const simp_graph = gen_dfa.simplifyGraph(regex);
+export function finalRegexExtractState(regex, submatches, text) {
+  const simp_graph = simplifyGraph(regex);
   console.log("min_dfa num states: ", simp_graph["states"].length);
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
   console.log("tagged dfa num states: ", tagged_simp_graph["states"].length);
-  const matched_dfa = gen_dfa.findSubstrings(simp_graph, text);
+  const matched_dfa = findSubstrings(simp_graph, text);
   console.log("matched dfa: ", matched_dfa);
 
   for (const subs of matched_dfa[1]) {
@@ -676,7 +679,7 @@ function finalRegexExtractState(regex, submatches, text) {
 //     }
 //   }
 // Will format transition into forward and backward, with list of transitions that lead to same state
-function formatForCircom(final_graph) {
+export function formatForCircom(final_graph) {
   let og_transitions = final_graph["transitions"];
   let forward_transitions = {};
   let rev_transitions = Array.from(
@@ -714,11 +717,11 @@ function formatForCircom(final_graph) {
   return final_graph;
 }
 
-module.exports = {
-  tagged_simplifyGraph,
-  tagged_nfaToDfa,
-  findMatchStateTagged,
-  regexSubmatchState,
-  finalRegexExtractState,
-  formatForCircom,
-};
+// module.exports = {
+//   tagged_simplifyGraph,
+//   tagged_nfaToDfa,
+//   findMatchStateTagged,
+//   regexSubmatchState,
+//   finalRegexExtractState,
+//   formatForCircom,
+// };
