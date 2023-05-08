@@ -35,6 +35,7 @@ export function simplifyRegex(str) {
     let insideBrackets = false;
     let index = 0;
     let currChar;
+    let immediate = false;
     while (true) {
       currChar = str[index];
       if (index >= str.length) {
@@ -44,6 +45,7 @@ export function simplifyRegex(str) {
         result += "(";
         insideBrackets = true;
         index++;
+        immediate = true;
         continue;
       } else if (currChar === "]") {
         currChar = insideBrackets ? ")" : currChar;
@@ -88,10 +90,16 @@ export function simplifyRegex(str) {
         //   currChar = "\\r";
         // }
       }
-      result += insideBrackets ? "|" + currChar : currChar;
+      if (immediate) {
+        result += currChar;
+      } else {
+        result += insideBrackets ? "|" + currChar : currChar;
+      }
+      immediate = false;
       index++;
     }
-    return result.replaceAll("(|", "(");
+    // return result.replaceAll("(|", "(");
+    return result;
   }
   //   console.log("adsfad: ", addPipeInsideBrackets(combined_nosep));
   return addPipeInsideBrackets(combined_nosep);
@@ -192,12 +200,21 @@ export function simplifyPlus(regex, submatches) {
   let regex_for_parse = stack.join("");
   let regex_for_show = "";
   let escape_pos = [];
-  for (let i = 0; i < regex_for_parse.length; i++) {
-    if (regex_for_parse[i] != "\\") {
-      regex_for_show += regex_for_parse[i];
-    } else {
-      escape_pos.push(i);
+  //   for (let i = 0; i < regex_for_parse.length; i++) {
+  //     if (regex_for_parse[i] != "\\") {
+  //       regex_for_show += regex_for_parse[i];
+  //     } else {
+  //       escape_pos.push(i);
+  //     }
+  //   }
+  let count_index = 0;
+  while (count_index < regex_for_parse.length) {
+    if (regex_for_parse[count_index] == "\\") {
+      escape_pos.push(count_index);
+      count_index += 1;
     }
+    regex_for_show += regex_for_parse[count_index];
+    count_index += 1;
   }
   escape_pos.sort((a, b) => a - b);
   let final_submatches = [];
