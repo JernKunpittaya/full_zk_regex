@@ -153,11 +153,9 @@ export function regexToM1(text, submatches) {
 
     switch (node.type) {
       // Ignore this case first :)
-      // case "empty":
-      //   let mem = realStart.type + end.type;
-      //   end = realStart;
-      //   end.type = mem;
-      //   return [count, end];
+      case "empty":
+        realStart.edges.push(["ϵ", interEnd]);
+        break;
       case "text":
         // realStart.edges.push([[node.text], interEnd]);
         realStart.edges.push([node.text, interEnd]);
