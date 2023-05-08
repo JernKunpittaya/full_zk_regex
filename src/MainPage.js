@@ -57,17 +57,32 @@ export const MainPage = () => {
 
   function generateSegments(regex) {
     const graph = simplifyGraph(
-      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
+      String.raw`${regex}`
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
     );
     return findSubstrings(graph, text);
   }
   function generateTaggedDFA(regex, submatches) {
     const tagged_simp_graph = tagged_simplifyGraph(
-      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"),
+      String.raw`${regex}`
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c"),
       submatches
     );
     const matched_dfa = generateSegments(
-      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
+      String.raw`${regex}`
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
     );
     let tagged_dictionary = {};
     for (const subs of matched_dfa[1]) {
@@ -99,7 +114,12 @@ export const MainPage = () => {
   function handleGenerateDFA() {
     // Generate graph parameters
     const graph = simplifyGraph(
-      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
+      String.raw`${regex}`
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c")
     );
     setRawDFA(graph);
   }
@@ -108,7 +128,14 @@ export const MainPage = () => {
     // console.log("simppp: ", simplifyRegex(regex));
     // console.log("simp22: ", simplifyRegex(regex.replace(/\\n/g, "\n")));
     setSimpleRegex(
-      simplifyRegex(regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"))
+      simplifyRegex(
+        String.raw`${regex}`
+          .replace(/\\n/g, "\n")
+          .replace(/\\t/g, "\t")
+          .replace(/\\r/g, "\r")
+          .replace(/\\x0b/g, "\x0b")
+          .replace(/\\x0c/g, "\x0c")
+      )
     );
   }
 
@@ -178,7 +205,12 @@ export const MainPage = () => {
   function handleGenerateCircom(event) {
     event.preventDefault();
     const tagged_simp_graph = tagged_simplifyGraph(
-      regex.replace(/\\n/g, "\n").replace(/\\t/g, "\t"),
+      String.raw`${regex}`
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\r/g, "\r")
+        .replace(/\\x0b/g, "\x0b")
+        .replace(/\\x0c/g, "\x0c"),
       submatchesArr
     );
     let final_graph = findMatchStateTagged(tagged_simp_graph);

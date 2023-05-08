@@ -4,4 +4,4 @@
 2. Return finalized dfa and tag version.
 
 Limitation:
-Cannot match regex with , \ \r \x0b \x0c yet
+Cannot match regex with , \ yet
