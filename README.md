@@ -1,13 +1,17 @@
 # frontend_zk_regex
 
+Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
+
+For Dev:
+
 # regex_submatch_simplified
 
-Simplified version regex_submatch (for full version see prev repo)
+Simplified version regex_submatch
 
 Input: regex, submatches, text
 Output: Return circom that allows us to reveal a specific submatch we defined through frontend.
 
-Flow:
+Data flow and related functions
 
 1. User type regex format like regex = "DKI: (([vad]=([12\\/]+); )+)bh"
 2. Frontend process this regex, by simp_regex = gen_dfa.simplifyRegex

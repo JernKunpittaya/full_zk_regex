@@ -243,6 +243,7 @@ export const MainPage = () => {
   useUpdateEffect(() => {
     handleUpdateSubmatchArr(submatchesArr);
   }, [submatchesArr]);
+
   return (
     <Container>
       <h1>ZK RegEX</h1>
@@ -251,8 +252,8 @@ export const MainPage = () => {
         value={text}
         onChange={(e) => {
           //   console.log("text input: ");
-          //   console.log(text);
-          setText(e.currentTarget.value);
+          //   console.log(JSON.stringify(text));
+          setText(e.currentTarget.value.replace(/\n/g, "\r\n"));
         }}
       />
       {/* <pre>{text}</pre> */}
