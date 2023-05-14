@@ -260,7 +260,7 @@ export const MainPage = () => {
         </Line>
         <Line>
           Syntax like \\n, \\r, \\t are double slashes, while other escape chars
-          like \”, \(, \*, \+, ... are single slash
+          like \”, \*, \+, ... are single slash
         </Line>
         <Line>
           3. When defining regex with * and + for subgroup match, write () over
