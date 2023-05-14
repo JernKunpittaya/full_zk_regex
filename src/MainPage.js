@@ -243,145 +243,193 @@ export const MainPage = () => {
   useUpdateEffect(() => {
     handleUpdateSubmatchArr(submatchesArr);
   }, [submatchesArr]);
-
   return (
-    <Container>
+    <div>
       <h1>ZK RegEX</h1>
-      <TextInput
-        label="Enter your text here:"
-        value={text}
-        onChange={(e) => {
-          //   console.log("text input: ");
-          //   console.log(JSON.stringify(text));
-          setText(e.currentTarget.value.replace(/\n/g, "\r\n"));
-        }}
-      />
-      {/* <pre>{text}</pre> */}
-      <RegexInput
-        label="Enter your regex here:"
-        value={regex}
-        onChange={(e) => {
-          //   console.log("jernjaa input: ");
-          //   console.log(e.currentTarget.value);
-          setRegex(e.currentTarget.value);
-          //   console.log("regex ", regex);
-        }}
-      />
-      <Button
-        disabled={displayMessage != "Match RegEx!" || regex.length === 0}
-        onClick={async () => {
-          //   console.log("yes");
-          setConvertActive(true);
-          setDisplayMessage("Match RegEx!");
-        }}
-      >
-        {displayMessage}
-      </Button>
-      {/* <h4>{regex}</h4>
-      <h4>{simpleRegex}</h4> */}
-      <Highlighter
-        sampleText={text}
-        sampleRegex={simpleRegex}
-        newHighlight={{}}
-        setNewHighlight={setNewHighlight}
-        newColor={{}}
-        setNewColor={setNewColor}
-        staticHighlights={staticHighlights}
-      />{" "}
-      <div>
-        <h3 style={{ padding: 0 }}>Extracted Subgroup:</h3>
-        <div
-          style={{
-            margin: "20px 0",
-            padding: "10px",
-            border: "1px solid white",
-            padding: 0,
+      <textInfo>
+        <Line>How to use zk RegEx</Line>
+        <Line>
+          1.Fill the text field with the original text format you want to
+          extract subgroup from (have multiple lines and tabs are ok, so just
+          copy your interested text.)
+        </Line>
+        <Line>
+          2. Fill the regex field with the regex you want to match but with
+          explicit syntax like \\n to represent new line instead of using
+          original format like the text field.
+        </Line>
+        <Line>
+          Syntax like \\n, \\r, \\t are double slashes, while other escape chars
+          like \”, \(, \*, \+, ... are single slash
+        </Line>
+        <Line>
+          3. When defining regex with * and + for subgroup match, write () over
+          that subgroup we are interested in e.g. ((a|b|c)+)
+        </Line>
+        <Line>
+          4. Click Match RegEx! to see where in the text that are matched by our
+          regex
+        </Line>
+        <Line>
+          5. Highlight "Regex to be Highlighted" by clicking "Begin Regex
+          Highlight", then choose two points as subgroup boundary we want to
+          match, then click "End Regex Highlight" to name the subgroup we are
+          extracting.
+        </Line>
+        <Line>6. Repeat Step 5, If done, just "Download Circom" and DONE!</Line>
+      </textInfo>
+      <Container>
+        <TextInput
+          label="Enter your text here:"
+          value={text}
+          onChange={(e) => {
+            //   console.log("text input: ");
+            //   console.log(JSON.stringify(text));
+            setText(e.currentTarget.value.replace(/\n/g, "\r\n"));
+          }}
+        />
+        {/* <pre>{text}</pre> */}
+        <RegexInput
+          label="Enter your regex here:"
+          value={regex}
+          onChange={(e) => {
+            //   console.log("jernjaa input: ");
+            //   console.log(e.currentTarget.value);
+            setRegex(e.currentTarget.value);
+            //   console.log("regex ", regex);
+          }}
+        />
+        <Button
+          disabled={displayMessage != "Match RegEx!" || regex.length === 0}
+          onClick={async () => {
+            //   console.log("yes");
+            setConvertActive(true);
+            setDisplayMessage("Match RegEx!");
           }}
         >
-          {Object.entries(tagDict).map(([dfa_match, tag_dict]) => (
-            <div style={{ position: "relative", padding: 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: 0,
-                }}
-              >
-                <h4
+          {displayMessage}
+        </Button>
+        {/* <h4>{regex}</h4>
+      <h4>{simpleRegex}</h4> */}
+        <Highlighter
+          sampleText={text}
+          sampleRegex={simpleRegex}
+          newHighlight={{}}
+          setNewHighlight={setNewHighlight}
+          newColor={{}}
+          setNewColor={setNewColor}
+          staticHighlights={staticHighlights}
+        />{" "}
+        <div>
+          <h3 style={{ padding: 0 }}>Extracted Subgroup:</h3>
+          <div
+            style={{
+              margin: "20px 0",
+              padding: "10px",
+              border: "1px solid white",
+              padding: 0,
+            }}
+          >
+            {Object.entries(tagDict).map(([dfa_match, tag_dict]) => (
+              <div style={{ position: "relative", padding: 0 }}>
+                <div
                   style={{
-                    fontWeight: "bold",
-                    marginRight: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 0,
                   }}
                 >
-                  DFA matched:
-                </h4>
-                <pre>
-                  <h4 style={{ fontWeight: "normal" }}>{dfa_match}</h4>
-                </pre>
-              </div>
-              <div style={{ marginLeft: "50px" }}>
-                {Object.entries(tag_dict).map(([tagNum, content]) => (
-                  <div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: 0,
-                      }}
-                    >
-                      <h5
+                  <h4
+                    style={{
+                      fontWeight: "bold",
+                      marginRight: "10px",
+                    }}
+                  >
+                    DFA matched:
+                  </h4>
+                  <pre>
+                    <h4 style={{ fontWeight: "normal" }}>{dfa_match}</h4>
+                  </pre>
+                </div>
+                <div style={{ marginLeft: "50px" }}>
+                  {Object.entries(tag_dict).map(([tagNum, content]) => (
+                    <div>
+                      <div
                         style={{
-                          fontWeight: "bold",
-                          marginRight: "10px",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: 0,
                         }}
                       >
-                        {groupMatch[tagNum]}
-                      </h5>
-                      <h4 style={{ fontWeight: "normal" }}>
-                        (Group: {tagNum})
-                      </h4>
-                    </div>
-                    <pre>
-                      <div style={{ marginLeft: "50px" }}>
-                        {content.map((item) => (
-                          <h5>{item}</h5>
-                        ))}
+                        <h5
+                          style={{
+                            fontWeight: "bold",
+                            marginRight: "10px",
+                          }}
+                        >
+                          {groupMatch[tagNum]}
+                        </h5>
+                        <h4 style={{ fontWeight: "normal" }}>
+                          (Group: {tagNum})
+                        </h4>
                       </div>
-                    </pre>
-                  </div>
-                ))}
+                      <pre>
+                        <div style={{ marginLeft: "50px" }}>
+                          {content.map((item) => (
+                            <h5>{item}</h5>
+                          ))}
+                        </div>
+                      </pre>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-      <Button onClick={handleGenerateCircom}>Download Circom</Button>
-      <h2 style={{ fontWeight: "normal" }}>Msg generator for zkREPL</h2>
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <textarea
-          placeholder="msg"
-          value={replMsg}
-          onChange={(e) => setReplMsg(e.target.value)}
-        />
-        <input
-          style={{ maxWidth: "200px" }}
-          type="number"
-          placeholder="msg max length"
-          value={replMsgLen}
-          onChange={(e) => setReplMsgLen(e.target.value)}
-        />
-        <button style={{ maxWidth: "200px" }} onClick={handleGenMsgRepl}>
-          Download msg for zkREPL
-        </button>
-      </div>
-    </Container>
+        <Button onClick={handleGenerateCircom}>Download Circom</Button>
+        <h2 style={{ fontWeight: "normal" }}>Msg generator for zkREPL</h2>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <textarea
+            placeholder="msg"
+            value={replMsg}
+            onChange={(e) => setReplMsg(e.target.value)}
+          />
+          <input
+            style={{ maxWidth: "200px" }}
+            type="number"
+            placeholder="msg max length"
+            value={replMsgLen}
+            onChange={(e) => setReplMsgLen(e.target.value)}
+          />
+          <button style={{ maxWidth: "200px" }} onClick={handleGenMsgRepl}>
+            Download msg for zkREPL
+          </button>
+        </div>
+      </Container>
+    </div>
   );
 };
 
+const TextInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  @media (min-width: 600px) {
+    flex-wrap: nowrap;
+  }
+`;
+const Line = styled.p`
+  margin-bottom: 10px;
+
+  @media (min-width: 600px) {
+    flex-basis: 50%;
+  }
+`;
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   margin: 0 auto;
+
   & .title {
     display: flex;
     flex-direction: column;

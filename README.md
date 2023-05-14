@@ -2,6 +2,12 @@
 
 Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
 
+We allow users to easily create circom circuit to reveal subgroup. After the steps shown on frontend, we can deal with our newly baked circom circuit by
+
+component main { public [msg, match_idx] } = Regex(max_msg_byte,max_reveal_byte,group_idx);
+
+where msg is the whole text, match_idx is to tell which occurance of a certain subgroup match we are interested in, and group_idx is to tell which subgroup we are interested in.
+
 For Dev:
 
 # regex_submatch_simplified
