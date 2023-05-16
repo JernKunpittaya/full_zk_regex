@@ -285,7 +285,8 @@ export const MainPage = () => {
           onChange={(e) => {
             //   console.log("text input: ");
             //   console.log(JSON.stringify(text));
-            setText(e.currentTarget.value.replace(/\n/g, "\r\n"));
+            // setText(e.currentTarget.value.replace(/\n/g, "\r\n"));
+            setText(e.currentTarget.value);
           }}
         />
         {/* <pre>{text}</pre> */}
