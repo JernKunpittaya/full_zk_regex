@@ -1,4 +1,5 @@
-# frontend_zk_regex
+[WIP]
+# full_zk_regex
 
 Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
 
@@ -30,14 +31,20 @@ Data flow and related functions
 3. Match all the strings that satisfies regex as a whole. ฺ(like previously version)
    Run
    const simp_graph = gen_dfa.simplifyGraph(regex);
+   
    const matched_dfa = gen_dfa.findSubstrings(simp_graph, text);
+   
    for (const subs of matched_dfa[1]) {
+   
    var matched = text.slice(subs[0], subs[1] + 1);} Very important of +1!!
 4. Now for each matched, we start extract substring state (we can have multiple matched values!)
 
    const tagged_simp_graph = gen_tagged_dfa.tagged_simplifyGraph(regex, submatches);
+   
    var final_graph = gen_tagged_dfa.findMatchStateTagged(tagged_simp_graph);
+   
    var allTags = final_graph["tags"];
+   
    var transitions = final_graph["transitions"];
 
 5. For Circom, we run
