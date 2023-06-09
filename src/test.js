@@ -32,6 +32,7 @@ function test() {
   console.log("final graph: ", final_graph);
   var circom_graph = formatForCircom(final_graph);
   var circom_rev_graph = formatForCircom(rev_graph);
+  console.log("test");
 }
 describe("test backend", function () {
   it("should print correctly", function () {
