@@ -67,10 +67,49 @@ export function reverseDFA(simp_graph) {
       }
     }
   }
+  // b4 reassigning state number
+  // return {
+  //   states: Array.from(rev_q_all),
+  //   start_state: rev_start,
+  //   accept_states: rev_accepted,
+  //   transitions: rev_transition,
+  // };
+
+  // Now, we will reassign state numbers
+  let states_dic = {};
+  // always initiate start_state to 0
+  let start_mem;
+  for (const ele of rev_start) {
+    states_dic[ele] = "0";
+    start_mem = ele;
+  }
+  var state_count = 1;
+  var final_rev_states = ["0"];
+  for (const state of Array.from(rev_q_all)) {
+    if (state != start_mem) {
+      states_dic[state] = state_count.toString();
+      final_rev_states.push(state_count.toString());
+      state_count += 1;
+    }
+  }
+  // assign new accepted_states
+  var final_accept_states = new Set();
+  for (const acc_state of rev_accepted) {
+    final_accept_states.add(states_dic[acc_state]);
+  }
+  // assign new transitions
+  let final_transitions = {};
+  for (let state in states_dic) {
+    final_transitions[states_dic[state]] = {};
+    for (let key in rev_transition[state]) {
+      final_transitions[states_dic[state]][key] =
+        states_dic[rev_transition[state][key]];
+    }
+  }
   return {
-    states: Array.from(rev_q_all),
-    start_state: rev_start,
-    accept_states: rev_accepted,
-    transitions: rev_transition,
+    states: final_rev_states,
+    start_state: "0",
+    accept_states: final_accept_states,
+    transitions: final_transitions,
   };
 }
