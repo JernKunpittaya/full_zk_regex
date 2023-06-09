@@ -251,7 +251,7 @@ export function regexToM1(text, submatches) {
   }
 
   // New: simplifyRegex and simplify Plus
-  console.log("herer in Gen: ", simplifyRegex(text));
+  // console.log("simplify regex in Gen: ", simplifyRegex(text));
   let after_plus = simplifyPlus(simplifyRegex(text), submatches);
 
   // console.log("afterrr; ", after_plus["submatches"]);
