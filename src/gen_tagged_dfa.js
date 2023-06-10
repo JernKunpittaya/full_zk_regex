@@ -230,7 +230,9 @@ export function findMatchStateTagged(tagged_dfa) {
   let visited_tran = new Set();
   let num_outward = {};
   let track_outward = {};
+  // keep track of states (from, to) that transitions with S_
   let tagged_start = {};
+  // keep track of states (from, to) that transitions with E_
   let tagged_end = {};
   let old_accepted_states = tagged_dfa["accepted_states"];
   let new_accepted_states = new Set(old_accepted_states);
@@ -238,18 +240,13 @@ export function findMatchStateTagged(tagged_dfa) {
     num_outward[key] = Object.keys(tranGraph[key]).length;
     track_outward[key] = 0;
   }
-  // accepted states already included
-  //   for (var states of tagged_dfa["accepted_states"]){
-  //     num_outward[states] = 0;
-  //     track_outward[states] = 0;
-  //   }
 
   let stack = [];
   stack.push({ node_id: tagged_dfa["start_state"], memTags: {}, boolTags: {} });
 
   while (stack.length > 0) {
     let { node_id, memTags, boolTags } = stack.pop();
-
+    // if we exhaust all transitions from that node
     if (track_outward[node_id] == num_outward[node_id]) {
       for (const key in memTags) {
         if (!allTags.hasOwnProperty(key)) {
@@ -262,25 +259,25 @@ export function findMatchStateTagged(tagged_dfa) {
       //   console.log("FINISH");
       continue;
     }
-
+    // if there's transition from that node, we haven't explored yet
     for (const key in tranGraph[node_id]) {
       // if already visit that transition, skip it
       //   console.log("From: ", node_id);
       //   console.log("by: ", key);
       //   console.log("to: ", tranGraph[node_id][key]);
-      track_outward[node_id] += 1;
+      // track_outward[node_id] += 1;
       if (
         visited_tran.has(JSON.stringify([node_id, tranGraph[node_id][key]]))
       ) {
         // console.log("return cl memtag: ", memTags);
         continue;
       }
-      // if not add this visit in
+      // if not add this visit into visited_tran
       visited_tran.add(JSON.stringify([node_id, tranGraph[node_id][key]]));
-      //   track_outward[node_id] += 1;
+      track_outward[node_id] += 1;
       let cl_memTags = {};
-      for (const key in memTags) {
-        cl_memTags[key] = new Set(memTags[key]);
+      for (const tmp_key in memTags) {
+        cl_memTags[tmp_key] = new Set(memTags[tmp_key]);
       }
       // console.log("check ", node_id, cl_memTags);
       let cl_boolTags = Object.assign({}, boolTags);
@@ -290,6 +287,7 @@ export function findMatchStateTagged(tagged_dfa) {
           if (!tagged_end.hasOwnProperty(key[1])) {
             tagged_end[key[1]] = new Set();
           }
+          // store node (from, to) that transitions with E_
           tagged_end[key[1]].add(
             JSON.stringify([node_id, tranGraph[node_id][key]])
           );
@@ -322,6 +320,7 @@ export function findMatchStateTagged(tagged_dfa) {
       });
     }
   }
+  // flatten tagged_start to contain all (from, to) that transitions with S_
   let flat_tagged_start = [];
   for (let key in tagged_start) {
     for (let states of tagged_start[key]) {
@@ -337,12 +336,14 @@ export function findMatchStateTagged(tagged_dfa) {
     }
   }
 
+  // Finish extract states we are interested in, Next: delete S_, E_ from graph
+
   // merge both tagged_start and tagged_end
   let tagged_both = {};
   for (const key in tagged_start) {
     tagged_both[key] = new Set([...tagged_start[key], ...tagged_end[key]]);
   }
-
+  // To fix: can't just collapse like this
   let new_tagged_both = collapseTag(tagged_both);
   //   console.log("BOTH ", new_tagged_both);
   // need to adjust number of stuffs later
@@ -350,11 +351,13 @@ export function findMatchStateTagged(tagged_dfa) {
   let cl_tranGraph = JSON.parse(JSON.stringify(tranGraph));
   for (let ele of new_tagged_both) {
     // check if keys can be same value?
+    // take all transitions of "to" node to "from" node
     cl_tranGraph[ele[0]] = { ...cl_tranGraph[ele[0]], ...cl_tranGraph[ele[1]] };
     if (old_accepted_states.has(ele[1])) {
       new_accepted_states.add(ele[0]);
     }
   }
+  // To fix: we can't just delete these og "to" states
   // delete those S stuffs
   for (let key in tagged_start) {
     for (let ele of tagged_start[key]) {
@@ -373,6 +376,7 @@ export function findMatchStateTagged(tagged_dfa) {
   //   console.log("tagg start: ", tagged_start);
   //   console.log("allTags: ", allTags);
   //   console.log("almost final tran: ", cl_tranGraph);
+
   // delete node that gets gone once remove S, E
   let reached_states = new Set();
   for (let state in cl_tranGraph) {
@@ -412,10 +416,13 @@ export function findMatchStateTagged(tagged_dfa) {
     final_accepted_states.add(states_dic[ele]);
   }
   //   console.log("final accepted: ", final_accepted_states);
+
+  // To check: is key exhaustive for final_states?
   let final_states = Object.keys(final_tranGraph);
   //   console.log("final states; ", final_states);
   let final_alphabets = new Set();
   for (const ele of tagged_dfa["alphabets"]) {
+    // To fix: shouldnt be == 1
     if (ele.length <= 1) {
       final_alphabets.add(ele);
     }
@@ -431,7 +438,9 @@ export function findMatchStateTagged(tagged_dfa) {
   }
   //   console.log("so cute: ", new_tagged_both_dic);
   //   console.log("all tags jjj: ", allTags);
+
   // adjust after we shifting edge of those with S, E
+  // To fix: what did i do then?
   let almost_allTags = {};
   for (const state in allTags) {
     almost_allTags[state] = new Set();
@@ -472,6 +481,7 @@ export function findMatchStateTagged(tagged_dfa) {
   }
   //   console.log("almost: ", almost_allTags);
 
+  // adjust almost_allTags with states_dict (aka reassign state number)
   let final_allTags = {};
   for (const state in almost_allTags) {
     final_allTags[state] = new Set();
@@ -497,6 +507,7 @@ export function findMatchStateTagged(tagged_dfa) {
   };
 }
 
+// to collapse states that has consecutive transitions S, E into just beginninga and ending node of that sequence
 function collapseTag(tagged_start) {
   let og_tags = [];
   for (let key in tagged_start) {
@@ -508,12 +519,12 @@ function collapseTag(tagged_start) {
   //   console.log("og tag: ", og_tags);
   let old_stack = Array.from(og_tags);
   let new_stack = [];
-  let count = 0;
+  let init = true;
   while (old_stack.length != new_stack.length) {
-    if (count != 0) {
+    if (!init) {
       old_stack = new_stack;
     }
-    count = 1;
+    init = false;
     new_stack = [];
     let mem = new Set();
     for (let i = 0; i < old_stack.length; i++) {
@@ -693,7 +704,10 @@ export function formatForCircom(final_graph) {
         memState[og_transitions[node][alp]] = [];
       }
       memState[og_transitions[node][alp]].push(alp);
+      // Not sort to see original value
+      // memState[og_transitions[node][alp]].sort();
     }
+
     for (const toState in memState) {
       forward_transitions[node][JSON.stringify(memState[toState])] = toState;
     }

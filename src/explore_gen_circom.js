@@ -1,3 +1,4 @@
+// explore space, for writing circom b4 integrating with frontend.
 import {
   tagged_simplifyGraph,
   findMatchStateTagged,
@@ -8,8 +9,12 @@ import { simplifyGraph } from "./gen_dfa";
 
 export function explore_gen_circom(regex, submatches) {
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
+  console.log("eden: ", tagged_simp_graph);
+  console.log("b4 everything: ", findMatchStateTagged(tagged_simp_graph));
   const forw_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
   const rev_graph = formatForCircom(reverseDFA(simplifyGraph(regex)));
+  // console.log("rev OG: ", reverseDFA(simplifyGraph(regex)));
+  // console.log("rev for circom: ", rev_graph);
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];
@@ -105,7 +110,8 @@ export function explore_gen_circom(regex, submatches) {
         rev_uppercase.size
       ) {
         rev_vals = new Set([...rev_vals].filter((x) => !rev_uppercase.has(x)));
-        rev_lines.push("\t//UPPERCASE");
+        rev_lines.push("\t//rev_UPPERCASE");
+        // og
         rev_lines.push(`\trev_lt[${rev_lt_i}][i] = LessThan(8);`);
         rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[0] <== 64;`);
         rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[1] <== rev_in[i];`);
@@ -125,13 +131,21 @@ export function explore_gen_circom(regex, submatches) {
         rev_eq_outputs.push(["rev_and", rev_and_i]);
         rev_lt_i += 2;
         rev_and_i += 1;
+
+        // Optimization
+        // rev_lines.push(`\trev_lt[${rev_lt_i}][i] = LessThan(8);`);
+        // rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[0] <== rev_in[i]-64;`);
+        // rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[1] <== 27;`);
+
+        // rev_eq_outputs.push(["rev_lt", rev_lt_i]);
+        // rev_lt_i += 1;
       }
       if (
         new Set([...rev_lowercase].filter((x) => rev_vals.has(x))).size ===
         rev_lowercase.size
       ) {
         rev_vals = new Set([...rev_vals].filter((x) => !rev_lowercase.has(x)));
-        rev_lines.push("\t//lowercase");
+        rev_lines.push("\t//rev_lowercase");
         rev_lines.push(`\trev_lt[${rev_lt_i}][i] = LessThan(8);`);
         rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[0] <== 96;`);
         rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[1] <== rev_in[i];`);
@@ -348,6 +362,9 @@ export function explore_gen_circom(regex, submatches) {
         new Set([...lowercase].filter((x) => vals.has(x))).size ===
         lowercase.size
       ) {
+        console.log("startttt", i);
+        console.log("KK: ", k);
+        console.log("prev: ", prev_i);
         vals = new Set([...vals].filter((x) => !lowercase.has(x)));
         lines.push("\t//lowercase");
         lines.push(`\tlt[${lt_i}][i] = LessThan(8);`);
@@ -365,6 +382,7 @@ export function explore_gen_circom(regex, submatches) {
         eq_outputs.push(["and", and_i]);
         lt_i += 2;
         and_i += 1;
+        console.log("ENDD");
       }
       if (
         new Set([...digits].filter((x) => vals.has(x))).size === digits.size
