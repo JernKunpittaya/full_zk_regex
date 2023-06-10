@@ -204,7 +204,20 @@ export const MainPage = () => {
   }
   function handleGenerateCircom(event) {
     event.preventDefault();
-    const tagged_simp_graph = tagged_simplifyGraph(
+    // const tagged_simp_graph = tagged_simplifyGraph(
+    //   String.raw`${regex}`
+    //     .replace(/\\n/g, "\n")
+    //     .replace(/\\t/g, "\t")
+    //     .replace(/\\r/g, "\r")
+    //     .replace(/\\x0b/g, "\x0b")
+    //     .replace(/\\x0c/g, "\x0c"),
+    //   submatchesArr
+    // );
+    // let final_graph = findMatchStateTagged(tagged_simp_graph);
+    // let graphforCircom = formatForCircom(final_graph);
+    // let rev_tran = graphforCircom["rev_transitions"];
+    // const text = gen_circom(final_graph, rev_tran);
+    const text = gen_circom(
       String.raw`${regex}`
         .replace(/\\n/g, "\n")
         .replace(/\\t/g, "\t")
@@ -213,10 +226,6 @@ export const MainPage = () => {
         .replace(/\\x0c/g, "\x0c"),
       submatchesArr
     );
-    let final_graph = findMatchStateTagged(tagged_simp_graph);
-    let graphforCircom = formatForCircom(final_graph);
-    let rev_tran = graphforCircom["rev_transitions"];
-    const text = gen_circom(final_graph, rev_tran);
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     saveAs(blob, "circom.txt");
   }
@@ -306,8 +315,7 @@ export const MainPage = () => {
             //   console.log("yes");
             setConvertActive(true);
             setDisplayMessage("Match RegEx!");
-          }}
-        >
+          }}>
           {displayMessage}
         </Button>
         {/* <h4>{regex}</h4>
@@ -329,8 +337,7 @@ export const MainPage = () => {
               padding: "10px",
               border: "1px solid white",
               padding: 0,
-            }}
-          >
+            }}>
             {Object.entries(tagDict).map(([dfa_match, tag_dict]) => (
               <div style={{ position: "relative", padding: 0 }}>
                 <div
@@ -338,14 +345,12 @@ export const MainPage = () => {
                     display: "flex",
                     alignItems: "center",
                     padding: 0,
-                  }}
-                >
+                  }}>
                   <h4
                     style={{
                       fontWeight: "bold",
                       marginRight: "10px",
-                    }}
-                  >
+                    }}>
                     DFA matched:
                   </h4>
                   <pre>
@@ -360,14 +365,12 @@ export const MainPage = () => {
                           display: "flex",
                           alignItems: "center",
                           padding: 0,
-                        }}
-                      >
+                        }}>
                         <h5
                           style={{
                             fontWeight: "bold",
                             marginRight: "10px",
-                          }}
-                        >
+                          }}>
                           {groupMatch[tagNum]}
                         </h5>
                         <h4 style={{ fontWeight: "normal" }}>

@@ -1,13 +1,4 @@
-import {
-  tagged_simplifyGraph,
-  findMatchStateTagged,
-  formatForCircom,
-} from "./gen_tagged_dfa";
-export function gen_circom(regex, submatches) {
-  const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  let final_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
-  let rev_tran = final_graph["rev_transitions"];
-
+export function gen_full_circom(final_graph, rev_tran) {
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];

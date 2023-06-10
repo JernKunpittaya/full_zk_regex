@@ -1,13 +1,4 @@
-import {
-  tagged_simplifyGraph,
-  findMatchStateTagged,
-  formatForCircom,
-} from "./gen_tagged_dfa";
-export function gen_circom(regex, submatches) {
-  const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  let final_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
-  let rev_tran = final_graph["rev_transitions"];
-
+export function gen_circom(final_graph, rev_tran) {
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];
@@ -46,11 +37,15 @@ export function gen_circom(regex, submatches) {
     "\tsignal reveal_shifted_intermediate[reveal_bytes][msg_bytes];"
   );
   tpl_head.push("\tsignal output reveal_shifted[reveal_bytes];");
+  // add adj_reveal (adjusted reveal) to reverse rev_reveal
+  tpl_head.push("\tsignal adj_reveal[msg_bytes];");
   tpl_head.push("");
-  tpl_head.push("\tvar num_bytes = msg_bytes;");
-  tpl_head.push("\tsignal in[num_bytes];");
+  tpl_head.push("\tsignal in[msg_bytes];");
+  tpl_head.push("\tsignal rev_in[msg_bytes];");
   tpl_head.push("\tfor (var i = 0; i < msg_bytes; i++) {");
   tpl_head.push("\t\tin[i] <== msg[i];");
+  // backward input msgs
+  tpl_head.push("\t\trev_in[i] <== msg[msg_bytes - i - 1];");
   tpl_head.push("\t}");
 
   final_text += tpl_head.join("\n") + "\n";
@@ -73,7 +68,7 @@ export function gen_circom(regex, submatches) {
   let multi_or_i = 0;
 
   let lines = [];
-  lines.push("for (var i = 0; i < num_bytes; i++) {");
+  lines.push("for (var i = 0; i < msg_bytes; i++) {");
 
   for (let i = 1; i < N; i++) {
     const outputs = [];
@@ -198,9 +193,9 @@ export function gen_circom(regex, submatches) {
   }
 
   lines.push("}");
-  lines.push("signal final_state_sum[num_bytes+1];");
+  lines.push("signal final_state_sum[msg_bytes+1];");
   // deal with accepted
-  lines.push("component check_accepted[num_bytes+1];");
+  lines.push("component check_accepted[msg_bytes+1];");
   lines.push(`check_accepted[0] = MultiOR(${accept_states.size});`);
   let count_setInd = 0;
   for (let element of accept_states) {
@@ -212,7 +207,7 @@ export function gen_circom(regex, submatches) {
     count_setInd++;
   }
   lines.push(`final_state_sum[0] <== check_accepted[0].out;`);
-  lines.push("for (var i = 1; i <= num_bytes; i++) {");
+  lines.push("for (var i = 1; i <= msg_bytes; i++) {");
   lines.push(`\tcheck_accepted[i] = MultiOR(${accept_states.size});`);
   count_setInd = 0;
   for (let element of accept_states) {
@@ -227,28 +222,28 @@ export function gen_circom(regex, submatches) {
     `\tfinal_state_sum[i] <== final_state_sum[i-1] + check_accepted[i].out;`
   );
   lines.push("}");
-  lines.push("entire_count <== final_state_sum[num_bytes];");
+  lines.push("entire_count <== final_state_sum[msg_bytes];");
 
   let declarations = [];
 
   if (eq_i > 0) {
-    declarations.push(`component eq[${eq_i}][num_bytes];`);
+    declarations.push(`component eq[${eq_i}][msg_bytes];`);
   }
   if (lt_i > 0) {
-    declarations.push(`component lt[${lt_i}][num_bytes];`);
+    declarations.push(`component lt[${lt_i}][msg_bytes];`);
   }
   if (and_i > 0) {
-    declarations.push(`component and[${and_i}][num_bytes];`);
+    declarations.push(`component and[${and_i}][msg_bytes];`);
   }
   if (multi_or_i > 0) {
-    declarations.push(`component multi_or[${multi_or_i}][num_bytes];`);
+    declarations.push(`component multi_or[${multi_or_i}][msg_bytes];`);
   }
-  declarations.push(`signal states[num_bytes+1][${N}];`);
+  declarations.push(`signal states[msg_bytes+1][${N}];`);
   declarations.push("");
 
   let init_code = [];
 
-  init_code.push("for (var i = 0; i < num_bytes; i++) {");
+  init_code.push("for (var i = 0; i < msg_bytes; i++) {");
   init_code.push("\tstates[i][0] <== 1;");
   init_code.push("}");
 
@@ -260,19 +255,19 @@ export function gen_circom(regex, submatches) {
 
   const reveal_code = [];
 
-  reveal_code.push("signal reveal[num_bytes];");
+  reveal_code.push("signal reveal[msg_bytes];");
   for (let i = 0; i < Object.keys(new_tags).length; i++) {
     reveal_code.push(
-      `component and_track${i}[num_bytes][${new_tags[i].length}];`
+      `component and_track${i}[msg_bytes][${new_tags[i].length}];`
     );
   }
 
   reveal_code.push(
-    `component or_track[num_bytes][${Object.keys(new_tags).length}];`
+    `component or_track[msg_bytes][${Object.keys(new_tags).length}];`
   );
 
   // calculate or_track for all tags
-  reveal_code.push("for (var i = 0; i < num_bytes; i++) {");
+  reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
 
   for (let tagId = 0; tagId < Object.keys(new_tags).length; tagId++) {
     reveal_code.push(
@@ -299,7 +294,7 @@ export function gen_circom(regex, submatches) {
   reveal_code.push("}");
   reveal_code.push("");
   // calculate reveal
-  reveal_code.push("for (var i = 0; i < num_bytes; i++) {");
+  reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
   reveal_code.push("\treveal[i] <== in[i] * or_track[i][group_idx].out;");
   reveal_code.push("}");
   reveal_code.push("");
@@ -312,12 +307,12 @@ export function gen_circom(regex, submatches) {
   tpl_end.push("\tvar start_index = 0;");
   tpl_end.push("var count = 0;");
   tpl_end.push("");
-  tpl_end.push("component check_start[num_bytes + 1];");
-  tpl_end.push("component check_match[num_bytes + 1];");
-  tpl_end.push("component check_matched_start[num_bytes + 1];");
+  tpl_end.push("component check_start[msg_bytes + 1];");
+  tpl_end.push("component check_match[msg_bytes + 1];");
+  tpl_end.push("component check_matched_start[msg_bytes + 1];");
   tpl_end.push("component matched_idx_eq[msg_bytes];");
   tpl_end.push("");
-  tpl_end.push("for (var i = 0; i < num_bytes; i++) {");
+  tpl_end.push("for (var i = 0; i < msg_bytes; i++) {");
   tpl_end.push("\tif (i == 0) {");
   tpl_end.push("\t\tcount += or_track[0][group_idx].out;");
   tpl_end.push("\t}");

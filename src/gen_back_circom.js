@@ -29,12 +29,11 @@ export function gen_back_circom(rev_graph, rev_rev_tran) {
   const rev_tpl_head = [];
   rev_tpl_head.push("template rev_Regex (msg_bytes){");
   rev_tpl_head.push("\tsignal input msg[msg_bytes];");
-  // add adj_reveal to reverse rev_reveal
+  // add adj_reveal (adjusted reveal) to reverse rev_reveal
   rev_tpl_head.push("\tsignal output adj_reveal[msg_bytes];");
   rev_tpl_head.push("");
   rev_tpl_head.push("");
-  rev_tpl_head.push("\tvar num_bytes = msg_bytes;");
-  rev_tpl_head.push("\tsignal rev_in[num_bytes];");
+  rev_tpl_head.push("\tsignal rev_in[msg_bytes];");
   rev_tpl_head.push("\tfor (var i = 0; i < msg_bytes; i++) {");
   // backward input msgs
   rev_tpl_head.push("\t\trev_in[i] <== msg[msg_bytes - i - 1];");
@@ -52,7 +51,7 @@ export function gen_back_circom(rev_graph, rev_rev_tran) {
   let rev_multi_or_i = 0;
 
   let rev_lines = [];
-  rev_lines.push("for (var i = 0; i < num_bytes; i++) {");
+  rev_lines.push("for (var i = 0; i < msg_bytes; i++) {");
 
   for (let i = 1; i < rev_N; i++) {
     const rev_outputs = [];
@@ -203,9 +202,9 @@ export function gen_back_circom(rev_graph, rev_rev_tran) {
 
   rev_lines.push("}");
   // deal with accepted
-  rev_lines.push("component rev_check_accepted[num_bytes+1];");
+  rev_lines.push("component rev_check_accepted[msg_bytes+1];");
 
-  rev_lines.push("for (var i = 0; i <= num_bytes; i++) {");
+  rev_lines.push("for (var i = 0; i <= msg_bytes; i++) {");
   rev_lines.push(
     `\trev_check_accepted[i] = MultiOR(${rev_accept_states.size});`
   );
@@ -224,25 +223,25 @@ export function gen_back_circom(rev_graph, rev_rev_tran) {
   let rev_declarations = [];
 
   if (rev_eq_i > 0) {
-    rev_declarations.push(`component rev_eq[${rev_eq_i}][num_bytes];`);
+    rev_declarations.push(`component rev_eq[${rev_eq_i}][msg_bytes];`);
   }
   if (rev_lt_i > 0) {
-    rev_declarations.push(`component rev_lt[${rev_lt_i}][num_bytes];`);
+    rev_declarations.push(`component rev_lt[${rev_lt_i}][msg_bytes];`);
   }
   if (rev_and_i > 0) {
-    rev_declarations.push(`component rev_and[${rev_and_i}][num_bytes];`);
+    rev_declarations.push(`component rev_and[${rev_and_i}][msg_bytes];`);
   }
   if (rev_multi_or_i > 0) {
     rev_declarations.push(
-      `component rev_multi_or[${rev_multi_or_i}][num_bytes];`
+      `component rev_multi_or[${rev_multi_or_i}][msg_bytes];`
     );
   }
-  rev_declarations.push(`signal rev_states[num_bytes+1][${rev_N}];`);
+  rev_declarations.push(`signal rev_states[msg_bytes+1][${rev_N}];`);
   rev_declarations.push("");
 
   let rev_init_code = [];
 
-  rev_init_code.push("for (var i = 0; i < num_bytes; i++) {");
+  rev_init_code.push("for (var i = 0; i < msg_bytes; i++) {");
   rev_init_code.push("\trev_states[i][0] <== 1;");
   rev_init_code.push("}");
 
@@ -254,14 +253,13 @@ export function gen_back_circom(rev_graph, rev_rev_tran) {
 
   const rev_reveal_code = [];
 
-  //   rev_reveal_code.push("signal rev_reveal[num_bytes];");
   // new_tags region below
 
   // calculate reveal
-  rev_reveal_code.push("for (var i = 0; i < num_bytes; i++) {");
+  rev_reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
   // TO BE CONTINUED
   rev_reveal_code.push(
-    "\tadj_reveal[i] <== rev_check_accepted[num_bytes-i].out;"
+    "\tadj_reveal[i] <== rev_check_accepted[msg_bytes-i].out;"
   );
   rev_reveal_code.push("}");
   rev_reveal_code.push("");
