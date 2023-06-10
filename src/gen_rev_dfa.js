@@ -109,7 +109,7 @@ export function reverseDFA(simp_graph) {
   return {
     states: final_rev_states,
     start_state: "0",
-    accept_states: final_accept_states,
+    accepted_states: final_accept_states,
     transitions: final_transitions,
   };
 }

@@ -5,6 +5,7 @@ import {
   formatForCircom,
 } from "./gen_tagged_dfa";
 import { reverseDFA } from "./gen_rev_dfa";
+import { gen_back_circom } from "./gen_back_circom";
 function test() {
   const text =
     "adsfasd DKI: v=12/; d=22; a=//121; d=1; bh=xUqTs2T2FPGCOB52 sdflj";
@@ -31,7 +32,14 @@ function test() {
   var transitions = final_graph["transitions"];
   console.log("final graph: ", final_graph);
   var circom_graph = formatForCircom(final_graph);
+  console.log("for rev graph");
   var circom_rev_graph = formatForCircom(rev_graph);
+  console.log("circom jyaa: ");
+  var result_circom = gen_back_circom(
+    circom_rev_graph,
+    circom_rev_graph["rev_transitions"]
+  );
+  console.log(result_circom);
   console.log("Done!");
 }
 describe("test backend", function () {

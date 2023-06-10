@@ -192,11 +192,9 @@ export function gen_circom(final_graph, rev_tran) {
   lines.push("signal final_state_sum[num_bytes+1];");
   // deal with accepted
   lines.push("component check_accepted[num_bytes+1];");
-  lines.push(
-    `check_accepted[0] = MultiOR(${final_graph["accepted_states"].size});`
-  );
+  lines.push(`check_accepted[0] = MultiOR(${accept_states.size});`);
   let count_setInd = 0;
-  for (let element of final_graph["accepted_states"]) {
+  for (let element of accept_states) {
     lines.push(
       `check_accepted[0].in[${count_setInd}] <== states[0][${parseInt(
         element
@@ -206,11 +204,9 @@ export function gen_circom(final_graph, rev_tran) {
   }
   lines.push(`final_state_sum[0] <== check_accepted[0].out;`);
   lines.push("for (var i = 1; i <= num_bytes; i++) {");
-  lines.push(
-    `\tcheck_accepted[i] = MultiOR(${final_graph["accepted_states"].size});`
-  );
+  lines.push(`\tcheck_accepted[i] = MultiOR(${accept_states.size});`);
   count_setInd = 0;
-  for (let element of final_graph["accepted_states"]) {
+  for (let element of accept_states) {
     lines.push(
       `\tcheck_accepted[i].in[${count_setInd}] <== states[i][${parseInt(
         element
