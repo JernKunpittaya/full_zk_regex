@@ -3,11 +3,13 @@ import {
   findMatchStateTagged,
   formatForCircom,
 } from "./gen_tagged_dfa";
+import { reverseDFA } from "./gen_rev_dfa";
+import { simplifyGraph } from "./gen_dfa";
+
 export function gen_circom(regex, submatches) {
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  let final_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
-  let rev_tran = final_graph["rev_transitions"];
-
+  const forw_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
+  const rev_graph = formatForCircom(reverseDFA(simplifyGraph(regex)));
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];
@@ -46,38 +48,273 @@ export function gen_circom(regex, submatches) {
     "\tsignal reveal_shifted_intermediate[reveal_bytes][msg_bytes];"
   );
   tpl_head.push("\tsignal output reveal_shifted[reveal_bytes];");
+  // add adj_reveal (adjusted reveal) to reverse rev_reveal
+  tpl_head.push("\tsignal adj_reveal[msg_bytes];");
   tpl_head.push("");
-  tpl_head.push("\tvar num_bytes = msg_bytes;");
-  tpl_head.push("\tsignal in[num_bytes];");
+  tpl_head.push("\tsignal in[msg_bytes];");
+  tpl_head.push("\tsignal rev_in[msg_bytes];");
   tpl_head.push("\tfor (var i = 0; i < msg_bytes; i++) {");
   tpl_head.push("\t\tin[i] <== msg[i];");
+  // backward input msgs
+  tpl_head.push("\t\trev_in[i] <== msg[msg_bytes - i - 1];");
   tpl_head.push("\t}");
 
   final_text += tpl_head.join("\n") + "\n";
   // compile content placeholder, join with \n\t
   // format tags stuffs
   let new_tags = {};
-  for (let key in final_graph["tags"]) {
+  for (let key in forw_graph["tags"]) {
     let tran_arr = [];
-    for (let ele of final_graph["tags"][key]) {
+    for (let ele of forw_graph["tags"][key]) {
       tran_arr.push(ele);
     }
     new_tags[key] = tran_arr;
   }
-  const N = final_graph["states"].length;
-  const accept_states = final_graph["accepted_states"];
+  const N = forw_graph["states"].length;
+  const accept_states = forw_graph["accepted_states"];
 
   let eq_i = 0;
   let lt_i = 0;
   let and_i = 0;
   let multi_or_i = 0;
 
+  // rev portion
+  const rev_N = rev_graph["states"].length;
+  const rev_accept_states = rev_graph["accepted_states"];
+
+  let rev_eq_i = 0;
+  let rev_lt_i = 0;
+  let rev_and_i = 0;
+  let rev_multi_or_i = 0;
+
+  let rev_lines = [];
+  rev_lines.push("for (var i = 0; i < msg_bytes; i++) {");
+
+  for (let i = 1; i < rev_N; i++) {
+    const rev_outputs = [];
+    for (let [k, prev_i] of rev_graph["rev_transitions"][i]) {
+      let rev_vals = new Set(JSON.parse(k));
+      const rev_eq_outputs = [];
+
+      const rev_uppercase = new Set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""));
+      const rev_lowercase = new Set("abcdefghijklmnopqrstuvwxyz".split(""));
+      const rev_digits = new Set("0123456789".split(""));
+
+      if (
+        new Set([...rev_uppercase].filter((x) => rev_vals.has(x))).size ===
+        rev_uppercase.size
+      ) {
+        rev_vals = new Set([...rev_vals].filter((x) => !rev_uppercase.has(x)));
+        rev_lines.push("\t//UPPERCASE");
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i] = LessThan(8);`);
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[0] <== 64;`);
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[1] <== rev_in[i];`);
+
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i] = LessThan(8);`);
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i].in[0] <== rev_in[i];`);
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i].in[1] <== 91;`);
+
+        rev_lines.push(`\trev_and[${rev_and_i}][i] = AND();`);
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].a <== rev_lt[${rev_lt_i}][i].out;`
+        );
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].b <== rev_lt[${rev_lt_i + 1}][i].out;`
+        );
+
+        rev_eq_outputs.push(["rev_and", rev_and_i]);
+        rev_lt_i += 2;
+        rev_and_i += 1;
+      }
+      if (
+        new Set([...rev_lowercase].filter((x) => rev_vals.has(x))).size ===
+        rev_lowercase.size
+      ) {
+        rev_vals = new Set([...rev_vals].filter((x) => !rev_lowercase.has(x)));
+        rev_lines.push("\t//lowercase");
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i] = LessThan(8);`);
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[0] <== 96;`);
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[1] <== rev_in[i];`);
+
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i] = LessThan(8);`);
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i].in[0] <== rev_in[i];`);
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i].in[1] <== 123;`);
+
+        rev_lines.push(`\trev_and[${rev_and_i}][i] = AND();`);
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].a <== rev_lt[${rev_lt_i}][i].out;`
+        );
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].b <== rev_lt[${rev_lt_i + 1}][i].out;`
+        );
+
+        rev_eq_outputs.push(["rev_and", rev_and_i]);
+        rev_lt_i += 2;
+        rev_and_i += 1;
+      }
+      if (
+        new Set([...rev_digits].filter((x) => rev_vals.has(x))).size ===
+        rev_digits.size
+      ) {
+        rev_vals = new Set([...rev_vals].filter((x) => !rev_digits.has(x)));
+        rev_lines.push("\t//digits");
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i] = LessThan(8);`);
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[0] <== 47;`);
+        rev_lines.push(`\trev_lt[${rev_lt_i}][i].in[1] <== rev_in[i];`);
+
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i] = LessThan(8);`);
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i].in[0] <== rev_in[i];`);
+        rev_lines.push(`\trev_lt[${rev_lt_i + 1}][i].in[1] <== 58;`);
+
+        rev_lines.push(`\trev_and[${rev_and_i}][i] = AND();`);
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].a <== rev_lt[${rev_lt_i}][i].out;`
+        );
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].b <== rev_lt[${rev_lt_i + 1}][i].out;`
+        );
+
+        rev_eq_outputs.push(["rev_and", rev_and_i]);
+        rev_lt_i += 2;
+        rev_and_i += 1;
+      }
+      for (let c of rev_vals) {
+        // assert.strictEqual(c.length, 1);
+        rev_lines.push(`\t//${c}`);
+        rev_lines.push(`\trev_eq[${rev_eq_i}][i] = IsEqual();`);
+        rev_lines.push(`\trev_eq[${rev_eq_i}][i].in[0] <== rev_in[i];`);
+        rev_lines.push(
+          `\trev_eq[${rev_eq_i}][i].in[1] <== ${c.charCodeAt(0)};`
+        );
+        rev_eq_outputs.push(["rev_eq", rev_eq_i]);
+        rev_eq_i += 1;
+      }
+
+      rev_lines.push(`\trev_and[${rev_and_i}][i] = AND();`);
+      rev_lines.push(
+        `\trev_and[${rev_and_i}][i].a <== rev_states[i][${prev_i}];`
+      );
+
+      if (rev_eq_outputs.length === 1) {
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].b <== ${rev_eq_outputs[0][0]}[${rev_eq_outputs[0][1]}][i].out;`
+        );
+      } else if (rev_eq_outputs.length > 1) {
+        rev_lines.push(
+          `\trev_multi_or[${rev_multi_or_i}][i] = MultiOR(${rev_eq_outputs.length});`
+        );
+        for (let output_i = 0; output_i < rev_eq_outputs.length; output_i++) {
+          rev_lines.push(
+            `\trev_multi_or[${rev_multi_or_i}][i].in[${output_i}] <== ${rev_eq_outputs[output_i][0]}[${rev_eq_outputs[output_i][1]}][i].out;`
+          );
+        }
+        rev_lines.push(
+          `\trev_and[${rev_and_i}][i].b <== rev_multi_or[${rev_multi_or_i}][i].out;`
+        );
+        rev_multi_or_i += 1;
+      }
+      rev_outputs.push(rev_and_i);
+      rev_and_i += 1;
+    }
+
+    if (rev_outputs.length === 1) {
+      rev_lines.push(
+        `\trev_states[i+1][${i}] <== rev_and[${rev_outputs[0]}][i].out;`
+      );
+    } else if (rev_outputs.length > 1) {
+      rev_lines.push(
+        `\trev_multi_or[${rev_multi_or_i}][i] = MultiOR(${rev_outputs.length});`
+      );
+      for (let output_i = 0; output_i < rev_outputs.length; output_i++) {
+        rev_lines.push(
+          `\trev_multi_or[${rev_multi_or_i}][i].in[${output_i}] <== rev_and[${rev_outputs[output_i]}][i].out;`
+        );
+      }
+      rev_lines.push(
+        `\trev_states[i+1][${i}] <== rev_multi_or[${rev_multi_or_i}][i].out;`
+      );
+      rev_multi_or_i += 1;
+    }
+  }
+
+  rev_lines.push("}");
+  // deal with accepted
+  rev_lines.push("component rev_check_accepted[msg_bytes+1];");
+
+  rev_lines.push("for (var i = 0; i <= msg_bytes; i++) {");
+  rev_lines.push(
+    `\trev_check_accepted[i] = MultiOR(${rev_accept_states.size});`
+  );
+  let rev_count_setInd = 0;
+  for (let element of rev_accept_states) {
+    rev_lines.push(
+      `\trev_check_accepted[i].in[${rev_count_setInd}] <== rev_states[i][${parseInt(
+        element
+      )}] ;`
+    );
+    rev_count_setInd++;
+  }
+
+  rev_lines.push("}");
+
+  let rev_declarations = [];
+
+  if (rev_eq_i > 0) {
+    rev_declarations.push(`component rev_eq[${rev_eq_i}][msg_bytes];`);
+  }
+  if (rev_lt_i > 0) {
+    rev_declarations.push(`component rev_lt[${rev_lt_i}][msg_bytes];`);
+  }
+  if (rev_and_i > 0) {
+    rev_declarations.push(`component rev_and[${rev_and_i}][msg_bytes];`);
+  }
+  if (rev_multi_or_i > 0) {
+    rev_declarations.push(
+      `component rev_multi_or[${rev_multi_or_i}][msg_bytes];`
+    );
+  }
+  rev_declarations.push(`signal rev_states[msg_bytes+1][${rev_N}];`);
+  rev_declarations.push("");
+
+  let rev_init_code = [];
+
+  rev_init_code.push("for (var i = 0; i < msg_bytes; i++) {");
+  rev_init_code.push("\trev_states[i][0] <== 1;");
+  rev_init_code.push("}");
+
+  rev_init_code.push(`for (var i = 1; i < ${rev_N}; i++) {`);
+  rev_init_code.push("\trev_states[0][i] <== 0;");
+  rev_init_code.push("}");
+
+  rev_init_code.push("");
+
+  const rev_reveal_code = [];
+
+  // new_tags region below
+
+  // calculate reveal
+  rev_reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
+  // TO BE CONTINUED
+  rev_reveal_code.push(
+    "\tadj_reveal[i] <== rev_check_accepted[msg_bytes-i].out;"
+  );
+  rev_reveal_code.push("}");
+  rev_reveal_code.push("");
+  rev_lines = [
+    ...rev_declarations,
+    ...rev_init_code,
+    ...rev_lines,
+    ...rev_reveal_code,
+  ];
+
+  final_text += "\n\t" + rev_lines.join("\n\t") + "\n";
+
   let lines = [];
-  lines.push("for (var i = 0; i < num_bytes; i++) {");
+  lines.push("for (var i = 0; i < msg_bytes; i++) {");
 
   for (let i = 1; i < N; i++) {
     const outputs = [];
-    for (let [k, prev_i] of rev_tran[i]) {
+    for (let [k, prev_i] of forw_graph["rev_transitions"][i]) {
       let vals = new Set(JSON.parse(k));
       const eq_outputs = [];
 
@@ -198,9 +435,9 @@ export function gen_circom(regex, submatches) {
   }
 
   lines.push("}");
-  lines.push("signal final_state_sum[num_bytes+1];");
+  lines.push("signal final_state_sum[msg_bytes+1];");
   // deal with accepted
-  lines.push("component check_accepted[num_bytes+1];");
+  lines.push("component check_accepted[msg_bytes+1];");
   lines.push(`check_accepted[0] = MultiOR(${accept_states.size});`);
   let count_setInd = 0;
   for (let element of accept_states) {
@@ -212,7 +449,7 @@ export function gen_circom(regex, submatches) {
     count_setInd++;
   }
   lines.push(`final_state_sum[0] <== check_accepted[0].out;`);
-  lines.push("for (var i = 1; i <= num_bytes; i++) {");
+  lines.push("for (var i = 1; i <= msg_bytes; i++) {");
   lines.push(`\tcheck_accepted[i] = MultiOR(${accept_states.size});`);
   count_setInd = 0;
   for (let element of accept_states) {
@@ -227,29 +464,29 @@ export function gen_circom(regex, submatches) {
     `\tfinal_state_sum[i] <== final_state_sum[i-1] + check_accepted[i].out;`
   );
   lines.push("}");
-  lines.push("entire_count <== final_state_sum[num_bytes];");
+  lines.push("entire_count <== final_state_sum[msg_bytes];");
 
   let declarations = [];
 
   if (eq_i > 0) {
-    declarations.push(`component eq[${eq_i}][num_bytes];`);
+    declarations.push(`component eq[${eq_i}][msg_bytes];`);
   }
   if (lt_i > 0) {
-    declarations.push(`component lt[${lt_i}][num_bytes];`);
+    declarations.push(`component lt[${lt_i}][msg_bytes];`);
   }
   if (and_i > 0) {
-    declarations.push(`component and[${and_i}][num_bytes];`);
+    declarations.push(`component and[${and_i}][msg_bytes];`);
   }
   if (multi_or_i > 0) {
-    declarations.push(`component multi_or[${multi_or_i}][num_bytes];`);
+    declarations.push(`component multi_or[${multi_or_i}][msg_bytes];`);
   }
-  declarations.push(`signal states[num_bytes+1][${N}];`);
+  declarations.push(`signal states[msg_bytes+1][${N}];`);
   declarations.push("");
 
   let init_code = [];
 
-  init_code.push("for (var i = 0; i < num_bytes; i++) {");
-  init_code.push("\tstates[i][0] <== 1;");
+  init_code.push("for (var i = 0; i < msg_bytes; i++) {");
+  init_code.push("\tstates[i][0] <== adj_reveal[i];");
   init_code.push("}");
 
   init_code.push(`for (var i = 1; i < ${N}; i++) {`);
@@ -260,19 +497,19 @@ export function gen_circom(regex, submatches) {
 
   const reveal_code = [];
 
-  reveal_code.push("signal reveal[num_bytes];");
+  reveal_code.push("signal reveal[msg_bytes];");
   for (let i = 0; i < Object.keys(new_tags).length; i++) {
     reveal_code.push(
-      `component and_track${i}[num_bytes][${new_tags[i].length}];`
+      `component and_track${i}[msg_bytes][${new_tags[i].length}];`
     );
   }
 
   reveal_code.push(
-    `component or_track[num_bytes][${Object.keys(new_tags).length}];`
+    `component or_track[msg_bytes][${Object.keys(new_tags).length}];`
   );
 
   // calculate or_track for all tags
-  reveal_code.push("for (var i = 0; i < num_bytes; i++) {");
+  reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
 
   for (let tagId = 0; tagId < Object.keys(new_tags).length; tagId++) {
     reveal_code.push(
@@ -299,7 +536,7 @@ export function gen_circom(regex, submatches) {
   reveal_code.push("}");
   reveal_code.push("");
   // calculate reveal
-  reveal_code.push("for (var i = 0; i < num_bytes; i++) {");
+  reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
   reveal_code.push("\treveal[i] <== in[i] * or_track[i][group_idx].out;");
   reveal_code.push("}");
   reveal_code.push("");
@@ -312,12 +549,12 @@ export function gen_circom(regex, submatches) {
   tpl_end.push("\tvar start_index = 0;");
   tpl_end.push("var count = 0;");
   tpl_end.push("");
-  tpl_end.push("component check_start[num_bytes + 1];");
-  tpl_end.push("component check_match[num_bytes + 1];");
-  tpl_end.push("component check_matched_start[num_bytes + 1];");
+  tpl_end.push("component check_start[msg_bytes + 1];");
+  tpl_end.push("component check_match[msg_bytes + 1];");
+  tpl_end.push("component check_matched_start[msg_bytes + 1];");
   tpl_end.push("component matched_idx_eq[msg_bytes];");
   tpl_end.push("");
-  tpl_end.push("for (var i = 0; i < num_bytes; i++) {");
+  tpl_end.push("for (var i = 0; i < msg_bytes; i++) {");
   tpl_end.push("\tif (i == 0) {");
   tpl_end.push("\t\tcount += or_track[0][group_idx].out;");
   tpl_end.push("\t}");
@@ -374,7 +611,6 @@ export function gen_circom(regex, submatches) {
 
   // add main function
   final_text +=
-    "\n\ncomponent main { public [msg, match_idx] } = Regex(1536,44,2);";
+    "\n\ncomponent main { public [msg, match_idx] } = Regex(100,44,2);";
   return final_text;
 }
-// module.exports = { gen_circom };

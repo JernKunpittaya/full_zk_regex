@@ -204,19 +204,6 @@ export const MainPage = () => {
   }
   function handleGenerateCircom(event) {
     event.preventDefault();
-    // const tagged_simp_graph = tagged_simplifyGraph(
-    //   String.raw`${regex}`
-    //     .replace(/\\n/g, "\n")
-    //     .replace(/\\t/g, "\t")
-    //     .replace(/\\r/g, "\r")
-    //     .replace(/\\x0b/g, "\x0b")
-    //     .replace(/\\x0c/g, "\x0c"),
-    //   submatchesArr
-    // );
-    // let final_graph = findMatchStateTagged(tagged_simp_graph);
-    // let graphforCircom = formatForCircom(final_graph);
-    // let rev_tran = graphforCircom["rev_transitions"];
-    // const text = gen_circom(final_graph, rev_tran);
     const text = gen_circom(
       String.raw`${regex}`
         .replace(/\\n/g, "\n")

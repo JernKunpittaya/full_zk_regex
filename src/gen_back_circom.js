@@ -1,5 +1,5 @@
 // generating circom for backward DFA
-export function gen_back_circom(rev_graph, rev_rev_tran) {
+export function gen_back_circom(rev_graph) {
   // lib_head, join with \n
   let rev_final_text = "";
   const rev_lib_head = [];
@@ -55,7 +55,7 @@ export function gen_back_circom(rev_graph, rev_rev_tran) {
 
   for (let i = 1; i < rev_N; i++) {
     const rev_outputs = [];
-    for (let [k, prev_i] of rev_rev_tran[i]) {
+    for (let [k, prev_i] of rev_graph["rev_transitions"][i]) {
       let rev_vals = new Set(JSON.parse(k));
       const rev_eq_outputs = [];
 
