@@ -8,7 +8,7 @@ import { reverseDFA } from "./gen_rev_dfa";
 import { simplifyGraph } from "./gen_dfa";
 import { M1ToM2 } from "./gen_m2";
 import { M2ToM3 } from "./gen_m3";
-import { createM4 } from "./gen_m4";
+import { createM4, registerToState } from "./gen_m4";
 
 export function explore_gen_circom(regex, submatches) {
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
@@ -19,6 +19,8 @@ export function explore_gen_circom(regex, submatches) {
   console.log("m3 jya: ", m3_graph);
   let m4_graph = createM4(tagged_simp_graph);
   console.log("m4 jyaa: ", m4_graph);
+  let tag_m4 = registerToState(m4_graph);
+  console.log("final m4: ", tag_m4);
   // console.log("b4 everything: ", findMatchStateTagged(tagged_simp_graph));
   // const forw_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
   // const rev_graph = formatForCircom(reverseDFA(simplifyGraph(regex)));

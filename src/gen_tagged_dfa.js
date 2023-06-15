@@ -244,8 +244,6 @@ export function findMatchStateTagged(tagged_dfa) {
       inner_key_set.add(tranGraph[key][inner_key]);
     }
     num_outward[key] = inner_key_set.size;
-    Object.keys(tranGraph[key]).length;
-
     track_outward[key] = 0;
   }
 

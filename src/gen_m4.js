@@ -140,3 +140,99 @@ export function createM4(m1_graph) {
     transitions: m4_transitions,
   };
 }
+// transform register into state transition for revealing
+// + modify transition to not have associated tag.
+export function registerToState(m4_graph) {
+  let tranGraph = m4_graph["transitions"];
+  let final_transitions = {};
+  let allTags = {};
+  let visited_tran = new Set();
+  let num_outward = {};
+  let track_outward = {};
+  for (const key in tranGraph) {
+    // num_outward represents possible end states that can reach from current node
+    let inner_key_set = new Set();
+    for (const inner_key in tranGraph[key]) {
+      inner_key_set.add(tranGraph[key][inner_key][0]);
+    }
+    num_outward[key] = inner_key_set.size;
+    track_outward[key] = 0;
+  }
+  let stack = [];
+  stack.push({ node_id: m4_graph["start_state"], memTags: {}, boolTags: {} });
+  while (stack.length > 0) {
+    let { node_id, memTags, boolTags } = stack.pop();
+    // if we exhaust all transitions from that node, store related tags into allTags
+    if (track_outward[node_id] == num_outward[node_id]) {
+      for (const key in memTags) {
+        if (!allTags.hasOwnProperty(key)) {
+          allTags[key] = new Set();
+        }
+        for (const strTran of memTags[key]) {
+          allTags[key].add(strTran);
+        }
+      }
+      continue;
+    }
+    // if there's transition from that node, we haven't explored yet
+    // Note that we consider visitted transition only from (from, to) without taking care of
+    // alphabet that leads that transition cuz we dont selectively reveal just a certain alphabet.
+    for (const key in tranGraph[node_id]) {
+      if (
+        visited_tran.has(JSON.stringify([node_id, tranGraph[node_id][key][0]]))
+      ) {
+        continue;
+      }
+      // if not add this visit into visited_tran
+      visited_tran.add(JSON.stringify([node_id, tranGraph[node_id][key][0]]));
+      track_outward[node_id] += 1;
+      let cl_memTags = {};
+      for (const tmp_key in memTags) {
+        cl_memTags[tmp_key] = new Set(memTags[tmp_key]);
+      }
+      let cl_boolTags = Object.assign({}, boolTags);
+      // store relevant transitions to its corresponding tags
+      for (const boolTag in cl_boolTags) {
+        if (cl_boolTags[boolTag]) {
+          if (!cl_memTags.hasOwnProperty(boolTag)) {
+            cl_memTags[boolTag] = new Set();
+          }
+          cl_memTags[boolTag].add(
+            JSON.stringify([node_id, tranGraph[node_id][key][0]])
+          );
+        }
+      }
+      // modify boolean states
+      let tag_arr = tranGraph[node_id][key][1];
+      if (tag_arr.length > 0) {
+        for (const subtag of tag_arr) {
+          if (subtag[0] == "E") {
+            cl_boolTags[subtag[1]] = false;
+          } else {
+            cl_boolTags[subtag[1]] = true;
+          }
+        }
+      }
+      stack.push({
+        node_id: tranGraph[node_id][key][0],
+        memTags: cl_memTags,
+        boolTags: cl_boolTags,
+      });
+    }
+  }
+
+  for (const firstkey in tranGraph) {
+    final_transitions[firstkey] = {};
+    for (const secondkey in tranGraph[firstkey]) {
+      final_transitions[firstkey][secondkey] =
+        tranGraph[firstkey][secondkey][0];
+    }
+  }
+  return {
+    states: m4_graph["states"],
+    start_state: m4_graph["start_state"],
+    accepted_states: m4_graph["accepted_states"],
+    transitions: final_transitions,
+    allTags: allTags,
+  };
+}
