@@ -13,23 +13,19 @@ import { reassignM3M4 } from "./reassign_m3_m4";
 
 export function explore_gen_circom(regex, submatches) {
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  console.log("eden aka m1: ", tagged_simp_graph);
+  // console.log("eden aka m1: ", tagged_simp_graph);
   let m2_graph = M1ToM2(tagged_simp_graph);
-  console.log("m2 jya: ", m2_graph);
+  // console.log("m2 jya: ", m2_graph);
   let m3_graph = M2ToM3(m2_graph);
-  console.log("m3 jya: ", m3_graph);
+  // console.log("m3 jya: ", m3_graph);
   let m4_graph = createM4(tagged_simp_graph);
   let tagged_m4_graph = registerToState(m4_graph);
-  console.log("tagged m4: ", tagged_m4_graph);
+  // console.log("tagged m4: ", tagged_m4_graph);
   let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
-  console.log("final m3: ", final_m3_m4["final_m3_graph"]);
-  console.log("final m4: ", final_m3_m4["final_m4_graph"]);
-
-  // console.log("b4 everything: ", findMatchStateTagged(tagged_simp_graph));
-  // const forw_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
-  // const rev_graph = formatForCircom(reverseDFA(simplifyGraph(regex)));
-  // console.log("rev OG: ", reverseDFA(simplifyGraph(regex)));
-  // console.log("rev for circom: ", rev_graph);
+  const forw_graph = formatForCircom(final_m3_m4["final_m4_graph"]);
+  const rev_graph = formatForCircom(final_m3_m4["final_m3_graph"]);
+  // console.log("nice m4 (forw): ", forw_graph);
+  // console.log("nice m3 (rev): ", rev_graph);
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];

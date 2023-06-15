@@ -333,13 +333,13 @@ export function simplifyGraph(regex) {
   // console.log("jern here");
   // console.log(graph_json);
   const N = graph_json.length;
-  let states = [];
+  let states = new Set();
   let alphabets = new Set();
   let start_state = "0";
   let accepted_states = new Set();
   let transitions = {};
   for (let i = 0; i < N; i++) {
-    states.push(i.toString());
+    states.add(i.toString());
     transitions[i.toString()] = {};
   }
 

@@ -683,12 +683,12 @@ export function finalRegexExtractState(regex, submatches, text) {
 
 // call after final graph of tagged dfa e.g.
 // final:  {
-//     states: [
+//     states: Set(13) {
 //       '0',  '1', '2',  '3',
 //       '4',  '5', '6',  '7',
 //       '8',  '9', '10', '11',
 //       '12'
-//     ],
+//     },
 //     alphabets: Set(15) {
 //       'D',
 //       '/',
@@ -742,7 +742,7 @@ export function formatForCircom(final_graph) {
   let og_transitions = final_graph["transitions"];
   let forward_transitions = {};
   let rev_transitions = Array.from(
-    { length: final_graph["states"].length },
+    { length: final_graph["states"].size },
     () => []
   );
   for (let node in og_transitions) {
@@ -769,7 +769,8 @@ export function formatForCircom(final_graph) {
       ]);
     }
   }
-  //   console.log("og tran: ", og_transitions);
+  // Print: uncomment to print forward_tran, rev_tran after concatenating alphabets that cause the same state transition
+  // console.log("og tran: ", og_transitions);
   // console.log("forward_tran: ", forward_transitions);
   // console.log("rev_tran: ", rev_transitions);
 
