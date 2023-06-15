@@ -7,7 +7,6 @@ import {
   simplifyRegex,
   findSubstrings,
 } from "./gen_dfa";
-import { createTopoGraph } from "./toposort";
 
 export function tagged_nfaToDfa(nfa) {
   "use strict";
