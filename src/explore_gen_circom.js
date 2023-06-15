@@ -6,13 +6,15 @@ import {
 } from "./gen_tagged_dfa";
 import { reverseDFA } from "./gen_rev_dfa";
 import { simplifyGraph } from "./gen_dfa";
+import { M1ToM2 } from "./gen_m2";
 
 export function explore_gen_circom(regex, submatches) {
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  console.log("eden: ", tagged_simp_graph);
-  console.log("b4 everything: ", findMatchStateTagged(tagged_simp_graph));
-  const forw_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
-  const rev_graph = formatForCircom(reverseDFA(simplifyGraph(regex)));
+  console.log("eden aka m1: ", tagged_simp_graph);
+  console.log("m2 jya: ", M1ToM2(tagged_simp_graph));
+  // console.log("b4 everything: ", findMatchStateTagged(tagged_simp_graph));
+  // const forw_graph = formatForCircom(findMatchStateTagged(tagged_simp_graph));
+  // const rev_graph = formatForCircom(reverseDFA(simplifyGraph(regex)));
   // console.log("rev OG: ", reverseDFA(simplifyGraph(regex)));
   // console.log("rev for circom: ", rev_graph);
   // lib_head, join with \n

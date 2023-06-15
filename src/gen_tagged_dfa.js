@@ -7,6 +7,7 @@ import {
   simplifyRegex,
   findSubstrings,
 } from "./gen_dfa";
+import { createTopoGraph } from "./toposort";
 
 export function tagged_nfaToDfa(nfa) {
   "use strict";
@@ -237,7 +238,14 @@ export function findMatchStateTagged(tagged_dfa) {
   let old_accepted_states = tagged_dfa["accepted_states"];
   let new_accepted_states = new Set(old_accepted_states);
   for (const key in tranGraph) {
-    num_outward[key] = Object.keys(tranGraph[key]).length;
+    // num_outward represents possible end states that can reach form current node
+    let inner_key_set = new Set();
+    for (const inner_key in tranGraph[key]) {
+      inner_key_set.add(tranGraph[key][inner_key]);
+    }
+    num_outward[key] = inner_key_set.size;
+    Object.keys(tranGraph[key]).length;
+
     track_outward[key] = 0;
   }
 
@@ -246,7 +254,7 @@ export function findMatchStateTagged(tagged_dfa) {
 
   while (stack.length > 0) {
     let { node_id, memTags, boolTags } = stack.pop();
-    // if we exhaust all transitions from that node
+    // if we exhaust all transitions from that node, store related tags into allTags.
     if (track_outward[node_id] == num_outward[node_id]) {
       for (const key in memTags) {
         if (!allTags.hasOwnProperty(key)) {
@@ -260,12 +268,13 @@ export function findMatchStateTagged(tagged_dfa) {
       continue;
     }
     // if there's transition from that node, we haven't explored yet
+    // Note that we consider visitted transition only from (from, to) without taking care of
+    // alphabet that leads that transition cuz we dont selectively reveal just a certain alphabet.
     for (const key in tranGraph[node_id]) {
       // if already visit that transition, skip it
-      //   console.log("From: ", node_id);
-      //   console.log("by: ", key);
-      //   console.log("to: ", tranGraph[node_id][key]);
-      // track_outward[node_id] += 1;
+      // console.log("From: ", node_id);
+      // console.log("by: ", key);
+      // console.log("to: ", tranGraph[node_id][key]);
       if (
         visited_tran.has(JSON.stringify([node_id, tranGraph[node_id][key]]))
       ) {
@@ -337,27 +346,67 @@ export function findMatchStateTagged(tagged_dfa) {
   }
 
   // Finish extract states we are interested in, Next: delete S_, E_ from graph
-
+  console.log("all tags here: ", allTags);
+  console.log("start tags here: ", tagged_start);
+  console.log("end tags here: ", tagged_end);
   // merge both tagged_start and tagged_end
   let tagged_both = {};
   for (const key in tagged_start) {
     tagged_both[key] = new Set([...tagged_start[key], ...tagged_end[key]]);
   }
+  console.log("tagged_both here: ", tagged_both);
+  // to not repeat the exact same transition
+  let flatten_tagged_both = new Set();
+  for (const key in tagged_both) {
+    for (const str_arr of tagged_both[key]) flatten_tagged_both.add(str_arr);
+  }
+  console.log("flatten_tagged_both here: ", flatten_tagged_both);
+  let topoGraph = createTopoGraph(flatten_tagged_both);
+  console.log("topograph here: ", topoGraph);
   // To fix: can't just collapse like this
-  let new_tagged_both = collapseTag(tagged_both);
+  // let new_tagged_both = collapseTag(tagged_both, tranGraph);
   //   console.log("BOTH ", new_tagged_both);
   // need to adjust number of stuffs later
   // Now edit DFA:
+
+  let cl_topoState = JSON.parse(JSON.stringify(topoGraph["states"]));
+  let topoTransitions = topoGraph["transitions"];
+  let topoRevTransitions = topoGraph["rev_transitions"];
   let cl_tranGraph = JSON.parse(JSON.stringify(tranGraph));
-  for (let ele of new_tagged_both) {
-    // check if keys can be same value?
-    // take all transitions of "to" node to "from" node
-    cl_tranGraph[ele[0]] = { ...cl_tranGraph[ele[0]], ...cl_tranGraph[ele[1]] };
-    if (old_accepted_states.has(ele[1])) {
-      new_accepted_states.add(ele[0]);
+
+  function findZero(dictionary) {
+    for (const subkey in dictionary) {
+      if (dictionary[subkey] == 0) {
+        return subkey;
+      }
+    }
+    return -1;
+  }
+  // transfer edges between nodes by topological order
+  console.log("before jya: ", cl_tranGraph);
+  while (findZero(cl_topoState) >= 0) {
+    let nodeTo = findZero(cl_topoState);
+    cl_topoState[nodeTo] = -1;
+    for (const nodeFrom of topoRevTransitions[nodeTo]) {
+      cl_tranGraph[nodeFrom] = {
+        ...cl_tranGraph[nodeFrom],
+        ...cl_tranGraph[nodeTo],
+      };
+      if (old_accepted_states.has(nodeTo)) {
+        new_accepted_states.add(nodeFrom);
+      }
     }
   }
-  // To fix: we can't just delete these og "to" states
+  console.log("after modify: ", cl_tranGraph);
+  // for (let ele of new_tagged_both) {
+  //   // check if keys can be same value?
+  //   // take all transitions of "to" node to "from" node
+  //   cl_tranGraph[ele[0]] = { ...cl_tranGraph[ele[0]], ...cl_tranGraph[ele[1]] };
+  //   if (old_accepted_states.has(ele[1])) {
+  //     new_accepted_states.add(ele[0]);
+  //   }
+  // }
+  // To fix: we can't just delete these og "to" states, instead delete the S, E transition.
   // delete those S stuffs
   for (let key in tagged_start) {
     for (let ele of tagged_start[key]) {
@@ -440,7 +489,8 @@ export function findMatchStateTagged(tagged_dfa) {
   //   console.log("all tags jjj: ", allTags);
 
   // adjust after we shifting edge of those with S, E
-  // To fix: what did i do then?
+  // Try to take care of those nodes that got deleted in collapseTag
+  // Very weird!!
   let almost_allTags = {};
   for (const state in allTags) {
     almost_allTags[state] = new Set();
@@ -507,11 +557,13 @@ export function findMatchStateTagged(tagged_dfa) {
   };
 }
 
-// to collapse states that has consecutive transitions S, E into just beginninga and ending node of that sequence
-function collapseTag(tagged_start) {
+// to collapse states that has consecutive transitions S, E into just beginning and ending node of that sequence
+// also take care of transitions
+function collapseTag(tagged_both, tranGraph) {
   let og_tags = [];
-  for (let key in tagged_start) {
-    for (let states of tagged_start[key]) {
+  let cl_tranGraph = JSON.parse(JSON.stringify(tranGraph));
+  for (let key in tagged_both) {
+    for (let states of tagged_both[key]) {
       const arr = JSON.parse(states);
       og_tags.push(arr);
     }
@@ -721,8 +773,8 @@ export function formatForCircom(final_graph) {
     }
   }
   //   console.log("og tran: ", og_transitions);
-  console.log("forward_tran: ", forward_transitions);
-  console.log("rev_tran: ", rev_transitions);
+  // console.log("forward_tran: ", forward_transitions);
+  // console.log("rev_tran: ", rev_transitions);
 
   // Careful!, it modifies final_graph
   final_graph["forward_transitions"] = forward_transitions;
