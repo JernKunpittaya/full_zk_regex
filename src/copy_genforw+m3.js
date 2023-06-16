@@ -287,7 +287,7 @@ export function gen_all_circom(regex, submatches) {
   const m4_circom_graph = formatForCircom(final_m3_m4["final_m4_graph"]);
   let m3_tpl_head = [];
   m3_tpl_head.push("\tsignal m3_in[msg_bytes];");
-  m3_tpl_head.push("\tsignal m3_adj_reveal[msg_bytes];");
+  m3_tpl_head.push("\tsignal output m3_adj_reveal[msg_bytes];");
   m3_tpl_head.push("\tfor (var i = 0; i < msg_bytes; i++) {");
   // backward input msgs
   m3_tpl_head.push("\t\tm3_in[i] <== in[msg_bytes - i - 1];");
@@ -442,32 +442,6 @@ export function gen_all_circom(regex, submatches) {
   }
 
   m3_lines.push("}");
-  // deal with m3_states_num
-  let m3_states_num_str = "m3_states_num[msg_bytes - i] <== ";
-  for (let i = 0; i < m3_N; i++) {
-    if (i == m3_N - 1) {
-      m3_states_num_str += ` m3_states[i][${i}]*${i};`;
-    } else {
-      m3_states_num_str += ` m3_states[i][${i}]*${i} +`;
-    }
-  }
-  m3_lines.push("for (var i = 0; i < msg_bytes; i++) {");
-  m3_lines.push(`\t${m3_states_num_str}`);
-  m3_lines.push("}");
-  m3_lines.push("");
-  // separate final state num since m3_states[msg_bytes][0] is undefined.
-  //(make sense or it have no alphabet to transition in dfa, and we dont really want to accept epsilon)
-  let m3_final_states_num_str = `m3_states_num[0] <== `;
-  for (let i = 1; i < m3_N; i++) {
-    if (i == m3_N - 1) {
-      m3_final_states_num_str += ` m3_states[msg_bytes][${i}]*${i};`;
-    } else {
-      m3_final_states_num_str += ` m3_states[msg_bytes][${i}]*${i} +`;
-    }
-  }
-  m3_lines.push(m3_final_states_num_str);
-  m3_lines.push("");
-
   // deal with accepted
   m3_lines.push("component m3_check_accepted[msg_bytes+1];");
 
@@ -501,9 +475,6 @@ export function gen_all_circom(regex, submatches) {
   }
   // m3_states[i+1][j] = 1 iff index i makes transition into state j. similar to others
   m3_declarations.push(`signal m3_states[msg_bytes+1][${m3_N}];`);
-  // m3_states_num[i+1] tells which state alphabet i leads into (unique state since we use forw_adj_reveal)
-  // already reversed from m3 for running m4
-  m3_declarations.push("signal output m3_states_num[msg_bytes+1];");
   m3_declarations.push("");
 
   let m3_init_code = [];
@@ -524,10 +495,8 @@ export function gen_all_circom(regex, submatches) {
 
   // calculate reveal
   m3_reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
-  // adjusted m3_adj_reveal to have starting point for m4
-  m3_reveal_code.push(
-    "\tm3_adj_reveal[i] <== m3_check_accepted[msg_bytes - i].out;"
-  );
+  // TO BE CONTINUED
+  m3_reveal_code.push("\tm3_adj_reveal[i] <== m3_check_accepted[i].out;");
   m3_reveal_code.push("}");
   m3_reveal_code.push("");
   m3_lines = [

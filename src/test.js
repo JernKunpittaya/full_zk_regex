@@ -10,7 +10,8 @@ import { reverseDFA } from "./gen_rev_dfa";
 import { gen_back_circom } from "./gen_back_circom";
 import { explore_gen_circom } from "./explore_gen_circom";
 import { readSubmatch } from "./gen";
-import { gen_forw_circom } from "./gen_3steps_circom";
+import { gen_forw_circom } from "./gen_forw_circom";
+import { gen_all_circom } from "./gen_3steps_circom";
 function test() {
   const text =
     "adsfasd DKI d=2211; DKI: v=12/; d=22; a=//121; d=1; bh=xUqTs2T2FPGCOB52 sdflj";
@@ -35,8 +36,6 @@ function test() {
     [17, 26],
   ];
   readSubmatch(regex, submatches);
-  const simp_graph = simplifyGraph(regex);
-  console.log("simp graph: ", simp_graph);
   // const rev_graph = reverseDFA(simp_graph);
   // console.log("rev graph: ", rev_graph);
   // const matched_dfa = findSubstrings(simp_graph, text);
@@ -54,8 +53,9 @@ function test() {
   // var circom_rev_graph = formatForCircom(rev_graph);
   console.log("circom jyaa: ");
   // var result_circom = gen_back_circom(circom_rev_graph);
-  let forw_circom = gen_forw_circom(regex);
-  console.log("forw_circom: ", forw_circom);
+  // let circom = gen_forw_circom(regex, submatches);
+  let circom = gen_all_circom(regex, submatches);
+  console.log(circom);
   // let result_circom = explore_gen_circom(regex, submatches);
   console.log("result circuit!!");
   // console.log(result_circom);
