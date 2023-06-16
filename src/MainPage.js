@@ -9,12 +9,7 @@ import { saveAs } from "file-saver";
 import { genInputzkRepl } from "./gen_msg_zkrepl";
 import { gen_circom } from "./gen_circom";
 import { simplifyGraph, findSubstrings, simplifyRegex } from "./gen_dfa";
-import {
-  tagged_simplifyGraph,
-  regexSubmatchState,
-  findMatchStateTagged,
-  formatForCircom,
-} from "./gen_tagged_dfa";
+import { tagged_simplifyGraph, regexSubmatchState } from "./gen_tagged_dfa";
 export const MainPage = () => {
   // to be input in the future
   //   const testText = "hello Jern ja I'm here";
