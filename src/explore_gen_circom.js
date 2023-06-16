@@ -22,10 +22,12 @@ export function explore_gen_circom(regex, submatches) {
   let tagged_m4_graph = registerToState(m4_graph);
   // console.log("tagged m4: ", tagged_m4_graph);
   let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
-  const forw_graph = formatForCircom(final_m3_m4["final_m4_graph"]);
-  const rev_graph = formatForCircom(final_m3_m4["final_m3_graph"]);
-  console.log("m4 graph: ", forw_graph);
-  console.log("m4 rev: ", forw_graph["tags"]);
+  console.log("final m3: ", final_m3_m4["final_m3_graph"]);
+  console.log("final m4: ", final_m3_m4["final_m4_graph"]);
+  // const forw_graph = formatForCircom(final_m3_m4["final_m4_graph"]);
+  // const rev_graph = formatForCircom(final_m3_m4["final_m3_graph"]);
+  // console.log("m4 graph: ", forw_graph);
+  // console.log("m4 rev: ", forw_graph["tags"]);
   // console.log("nice m3 (rev): ", rev_graph);
   // lib_head, join with \n
   let final_text = "";

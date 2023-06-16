@@ -59,9 +59,9 @@ function test() {
   console.log("circom jyaa: ");
   // var result_circom = gen_back_circom(circom_rev_graph);
   // let circom = gen_forw_circom(regex, submatches);
-  let circom = gen_all_circom(regex, submatches);
-  console.log(circom);
-  // let result_circom = explore_gen_circom(regex, submatches);
+  // let circom = gen_all_circom(regex, submatches);
+  // console.log(circom);
+  let result_circom = explore_gen_circom(regex, submatches);
   console.log("result circuit!!");
   // console.log(result_circom);
   console.log("Done!");

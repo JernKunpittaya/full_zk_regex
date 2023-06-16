@@ -7,7 +7,10 @@ import {
   simplifyRegex,
   findSubstrings,
 } from "./gen_dfa";
-
+import { M1ToM2 } from "./gen_m2";
+import { M2ToM3 } from "./gen_m3";
+import { createM4, registerToState } from "./gen_m4";
+import { reassignM3M4 } from "./reassign_m3_m4";
 export function tagged_nfaToDfa(nfa) {
   "use strict";
   function getClosure(nodes) {
@@ -219,408 +222,30 @@ export function tagged_simplifyGraph(regex, submatches) {
     transitions: transitions,
   };
 }
-// show what state transition is included for revealing a subgroup match in all tagged_dfa
-// memTags {tag1: set("[from1, to1]","[from2, to2]"", ...), tag2: [...]}
-// memTag {tag1: }
-// boolTag{tag1: true, tag2: False}
-export function findMatchStateTagged(tagged_dfa) {
-  // run each tag separately
-  let tranGraph = tagged_dfa["transitions"];
-  let allTags = {};
-  let visited_tran = new Set();
-  let num_outward = {};
-  let track_outward = {};
-  // keep track of states (from, to) that transitions with S_
-  let tagged_start = {};
-  // keep track of states (from, to) that transitions with E_
-  let tagged_end = {};
-  let old_accepted_states = tagged_dfa["accepted_states"];
-  let new_accepted_states = new Set(old_accepted_states);
-  for (const key in tranGraph) {
-    // num_outward represents possible end states that can reach form current node
-    let inner_key_set = new Set();
-    for (const inner_key in tranGraph[key]) {
-      inner_key_set.add(tranGraph[key][inner_key]);
-    }
-    num_outward[key] = inner_key_set.size;
-    track_outward[key] = 0;
-  }
-
-  let stack = [];
-  stack.push({ node_id: tagged_dfa["start_state"], memTags: {}, boolTags: {} });
-
-  while (stack.length > 0) {
-    let { node_id, memTags, boolTags } = stack.pop();
-    // if we exhaust all transitions from that node, store related tags into allTags.
-    if (track_outward[node_id] == num_outward[node_id]) {
-      for (const key in memTags) {
-        if (!allTags.hasOwnProperty(key)) {
-          allTags[key] = new Set();
-        }
-        for (const strTran of memTags[key]) {
-          allTags[key].add(strTran);
-        }
-      }
-      //   console.log("FINISH");
-      continue;
-    }
-    // if there's transition from that node, we haven't explored yet
-    // Note that we consider visitted transition only from (from, to) without taking care of
-    // alphabet that leads that transition cuz we dont selectively reveal just a certain alphabet.
-    for (const key in tranGraph[node_id]) {
-      // if already visit that transition, skip it
-      // console.log("From: ", node_id);
-      // console.log("by: ", key);
-      // console.log("to: ", tranGraph[node_id][key]);
-      if (
-        visited_tran.has(JSON.stringify([node_id, tranGraph[node_id][key]]))
-      ) {
-        // console.log("return cl memtag: ", memTags);
-        continue;
-      }
-      // if not add this visit into visited_tran
-      visited_tran.add(JSON.stringify([node_id, tranGraph[node_id][key]]));
-      track_outward[node_id] += 1;
-      let cl_memTags = {};
-      for (const tmp_key in memTags) {
-        cl_memTags[tmp_key] = new Set(memTags[tmp_key]);
-      }
-      // console.log("check ", node_id, cl_memTags);
-      let cl_boolTags = Object.assign({}, boolTags);
-      if (key.length > 1) {
-        if (key[0] == "E") {
-          cl_boolTags[key[1]] = false;
-          if (!tagged_end.hasOwnProperty(key[1])) {
-            tagged_end[key[1]] = new Set();
-          }
-          // store node (from, to) that transitions with E_
-          tagged_end[key[1]].add(
-            JSON.stringify([node_id, tranGraph[node_id][key]])
-          );
-        } else {
-          cl_boolTags[key[1]] = true;
-          if (!tagged_start.hasOwnProperty(key[1])) {
-            tagged_start[key[1]] = new Set();
-          }
-          tagged_start[key[1]].add(
-            JSON.stringify([node_id, tranGraph[node_id][key]])
-          );
-        }
-      }
-      //   console.log("bool tag: ", cl_boolTags);
-      for (const boolTag in cl_boolTags) {
-        if (cl_boolTags[boolTag]) {
-          if (!cl_memTags.hasOwnProperty(boolTag)) {
-            cl_memTags[boolTag] = new Set();
-          }
-          cl_memTags[boolTag].add(
-            JSON.stringify([node_id, tranGraph[node_id][key]])
-          );
-        }
-      }
-      //   console.log("cl memtag: ", cl_memTags);
-      stack.push({
-        node_id: tranGraph[node_id][key],
-        memTags: cl_memTags,
-        boolTags: cl_boolTags,
-      });
-    }
-  }
-  // flatten tagged_start to contain all (from, to) that transitions with S_
-  let flat_tagged_start = [];
-  for (let key in tagged_start) {
-    for (let states of tagged_start[key]) {
-      flat_tagged_start.push(states);
-    }
-  }
-  // remove start_tag from alltags
-  for (const key in allTags) {
-    for (const val of flat_tagged_start) {
-      if (allTags[key].has(val)) {
-        allTags[key].delete(val);
-      }
-    }
-  }
-
-  // Finish extract states we are interested in, Next: delete S_, E_ from graph
-  console.log("all tags here: ", allTags);
-  console.log("start tags here: ", tagged_start);
-  console.log("end tags here: ", tagged_end);
-  // merge both tagged_start and tagged_end
-  let tagged_both = {};
-  for (const key in tagged_start) {
-    tagged_both[key] = new Set([...tagged_start[key], ...tagged_end[key]]);
-  }
-  console.log("tagged_both here: ", tagged_both);
-  // to not repeat the exact same transition
-  let flatten_tagged_both = new Set();
-  for (const key in tagged_both) {
-    for (const str_arr of tagged_both[key]) flatten_tagged_both.add(str_arr);
-  }
-  console.log("flatten_tagged_both here: ", flatten_tagged_both);
-  let topoGraph = createTopoGraph(flatten_tagged_both);
-  console.log("topograph here: ", topoGraph);
-  // To fix: can't just collapse like this
-  // let new_tagged_both = collapseTag(tagged_both, tranGraph);
-  //   console.log("BOTH ", new_tagged_both);
-  // need to adjust number of stuffs later
-  // Now edit DFA:
-
-  let cl_topoState = JSON.parse(JSON.stringify(topoGraph["states"]));
-  let topoTransitions = topoGraph["transitions"];
-  let topoRevTransitions = topoGraph["rev_transitions"];
-  let cl_tranGraph = JSON.parse(JSON.stringify(tranGraph));
-
-  function findZero(dictionary) {
-    for (const subkey in dictionary) {
-      if (dictionary[subkey] == 0) {
-        return subkey;
-      }
-    }
-    return -1;
-  }
-  // transfer edges between nodes by topological order
-  console.log("before jya: ", cl_tranGraph);
-  while (findZero(cl_topoState) >= 0) {
-    let nodeTo = findZero(cl_topoState);
-    cl_topoState[nodeTo] = -1;
-    for (const nodeFrom of topoRevTransitions[nodeTo]) {
-      cl_tranGraph[nodeFrom] = {
-        ...cl_tranGraph[nodeFrom],
-        ...cl_tranGraph[nodeTo],
-      };
-      if (old_accepted_states.has(nodeTo)) {
-        new_accepted_states.add(nodeFrom);
-      }
-    }
-  }
-  console.log("after modify: ", cl_tranGraph);
-  // for (let ele of new_tagged_both) {
-  //   // check if keys can be same value?
-  //   // take all transitions of "to" node to "from" node
-  //   cl_tranGraph[ele[0]] = { ...cl_tranGraph[ele[0]], ...cl_tranGraph[ele[1]] };
-  //   if (old_accepted_states.has(ele[1])) {
-  //     new_accepted_states.add(ele[0]);
-  //   }
-  // }
-  // To fix: we can't just delete these og "to" states, instead delete the S, E transition.
-  // delete those S stuffs
-  for (let key in tagged_start) {
-    for (let ele of tagged_start[key]) {
-      let arr = JSON.parse(ele);
-      delete cl_tranGraph[arr[0]]["S" + key];
-    }
-  }
-  // delete those E stuffs
-  for (let key in tagged_end) {
-    for (let ele of tagged_end[key]) {
-      let arr = JSON.parse(ele);
-      delete cl_tranGraph[arr[0]]["E" + key];
-    }
-  }
-
-  //   console.log("tagg start: ", tagged_start);
-  //   console.log("allTags: ", allTags);
-  //   console.log("almost final tran: ", cl_tranGraph);
-
-  // delete node that gets gone once remove S, E
-  let reached_states = new Set();
-  for (let state in cl_tranGraph) {
-    for (let key in cl_tranGraph[state]) {
-      reached_states.add(cl_tranGraph[state][key]);
-    }
-  }
-  reached_states.add(tagged_dfa["start_state"]);
-  let deleted_states = [];
-  for (let state in cl_tranGraph) {
-    if (!reached_states.has(state)) {
-      deleted_states.push(state);
-    }
-  }
-  deleted_states.sort((a, b) => parseInt(a) - parseInt(b));
-  let states_dic = {};
-  for (let i = 0; i < tagged_dfa["states"].length; i++) {
-    if (!deleted_states.includes(i.toString())) {
-      states_dic[i.toString()] = (
-        i - findInsertionIndex(deleted_states, i)
-      ).toString();
-    }
-  }
-  // reformat states number in states [array], alphabets [set], accepted_states [set]
-  // ,transitions and allTags
-  let final_tranGraph = {};
-  for (let state in states_dic) {
-    final_tranGraph[states_dic[state]] = {};
-    for (let key in cl_tranGraph[state]) {
-      final_tranGraph[states_dic[state]][key] =
-        states_dic[cl_tranGraph[state][key]];
-    }
-  }
-  //   console.log("final tran: ", final_tranGraph);
-  let final_accepted_states = new Set();
-  for (const ele of new_accepted_states) {
-    final_accepted_states.add(states_dic[ele]);
-  }
-  //   console.log("final accepted: ", final_accepted_states);
-
-  // To check: is key exhaustive for final_states?
-  let final_states = Object.keys(final_tranGraph);
-  //   console.log("final states; ", final_states);
-  let final_alphabets = new Set();
-  for (const ele of tagged_dfa["alphabets"]) {
-    // To fix: shouldnt be == 1
-    if (ele.length <= 1) {
-      final_alphabets.add(ele);
-    }
-  }
-  //   console.log("alp ", final_alphabets);
-  //   console.log("all Tags: ", allTags);
-  let new_tagged_both_dic = {};
-  for (const ele of new_tagged_both) {
-    if (!new_tagged_both_dic.hasOwnProperty(ele[1])) {
-      new_tagged_both_dic[ele[1]] = new Set();
-    }
-    new_tagged_both_dic[ele[1]].add(ele[0]);
-  }
-  //   console.log("so cute: ", new_tagged_both_dic);
-  //   console.log("all tags jjj: ", allTags);
-
-  // adjust after we shifting edge of those with S, E
-  // Try to take care of those nodes that got deleted in collapseTag
-  // Very weird!!
-  let almost_allTags = {};
-  for (const state in allTags) {
-    almost_allTags[state] = new Set();
-    // iterate inside set
-    for (const subset of allTags[state]) {
-      let arr = JSON.parse(subset);
-      let count = 0;
-      for (let group of new_tagged_both) {
-        if (JSON.stringify(group) == subset) {
-          count += 1;
-          break;
-        }
-      }
-      if (count == 1) {
-        continue;
-      }
-      let fromState = new Set();
-      fromState.add(arr[0]);
-      let toState = new Set();
-      toState.add(arr[1]);
-      //   console.log("chcccc: ,", toState);
-      if (new_tagged_both_dic.hasOwnProperty(arr[0])) {
-        fromState = new_tagged_both_dic[arr[0]];
-      }
-      if (new_tagged_both_dic.hasOwnProperty(arr[1])) {
-        toState = new_tagged_both_dic[arr[1]];
-      }
-      //   console.log("subbb: ", subset);
-      //   console.log("from :", fromState);
-      //   console.log("tooo: ", toState);
-      for (let from of fromState) {
-        for (let to of toState) {
-          almost_allTags[state].add(JSON.stringify([from, to]));
-        }
-      }
-      //   console.log(arr)
-    }
-  }
-  //   console.log("almost: ", almost_allTags);
-
-  // adjust almost_allTags with states_dict (aka reassign state number)
-  let final_allTags = {};
-  for (const state in almost_allTags) {
-    final_allTags[state] = new Set();
-    for (const tran of almost_allTags[state]) {
-      let arr = JSON.parse(tran);
-      //   console.log(arr);
-      final_allTags[state].add(
-        JSON.stringify([states_dic[arr[0]], states_dic[arr[1]]])
-      );
-    }
-  }
-  //   console.log("dicc: ", states_dic);
-  //   console.log("final allTags: ", final_allTags);
-  //   console.log("end: ", tagged_end);
-  // print
-  return {
-    states: final_states,
-    alphabets: final_alphabets,
-    start_state: tagged_dfa["start_state"],
-    accepted_states: final_accepted_states,
-    transitions: final_tranGraph,
-    tags: final_allTags,
-  };
-}
-
-// to collapse states that has consecutive transitions S, E into just beginning and ending node of that sequence
-// also take care of transitions
-function collapseTag(tagged_both, tranGraph) {
-  let og_tags = [];
-  let cl_tranGraph = JSON.parse(JSON.stringify(tranGraph));
-  for (let key in tagged_both) {
-    for (let states of tagged_both[key]) {
-      const arr = JSON.parse(states);
-      og_tags.push(arr);
-    }
-  }
-  //   console.log("og tag: ", og_tags);
-  let old_stack = Array.from(og_tags);
-  let new_stack = [];
-  let init = true;
-  while (old_stack.length != new_stack.length) {
-    if (!init) {
-      old_stack = new_stack;
-    }
-    init = false;
-    new_stack = [];
-    let mem = new Set();
-    for (let i = 0; i < old_stack.length; i++) {
-      for (let j = 0; j < old_stack.length; j++) {
-        if (old_stack[i][1] == old_stack[j][0] && i != j) {
-          new_stack.push([old_stack[i][0], old_stack[j][1]]);
-          mem.add(i);
-          mem.add(j);
-        }
-      }
-    }
-    for (let k = 0; k < old_stack.length; k++) {
-      if (!mem.has(k)) {
-        new_stack.push(old_stack[k]);
-      }
-    }
-  }
-  return new_stack;
-}
-
-function findInsertionIndex(arr, target) {
-  let left = 0;
-  let right = arr.length;
-
-  while (left < right) {
-    const mid = Math.floor((left + right) / 2);
-
-    if (Number(arr[mid]) < Number(target)) {
-      left = mid + 1;
-    } else {
-      right = mid;
-    }
-  }
-
-  return left;
-}
 
 // // return all indexes that is included in a certain subgroup match.
 // text is already matched by plain DFA!
 export function regexSubmatchState(text, tagged_simp_graph) {
-  let final_graph = findMatchStateTagged(tagged_simp_graph);
-  let allTags = final_graph["tags"];
-  let transitions = final_graph["transitions"];
-  console.log("final, gen_tagged_dfa: ", final_graph);
-  console.log("text, gen_tagged: ", text);
-  //   console.log("tran: ", transitions);
-  //   console.log("all tags: ", allTags);
+  let m2_graph = M1ToM2(tagged_simp_graph);
+  let m3_graph = M2ToM3(m2_graph);
+  let m4_graph = createM4(tagged_simp_graph);
+  let tagged_m4_graph = registerToState(m4_graph);
+  let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
+  console.log("final m3: ", final_m3_m4["final_m3_graph"]);
+  console.log("final m4: ", final_m3_m4["final_m4_graph"]);
+
+  // run reversed text via m3
+  let m3_states = [];
+  let m3_node = final_m3_m4["final_m3_graph"]["start_state"];
+  m3_states.push(m3_node);
+  for (let index = text.length - 1; index >= 0; index--) {
+    m3_node =
+      final_m3_m4["final_m3_graph"]["transitions"][m3_node][text[index]];
+    m3_states.push(m3_node);
+  }
+  m3_states.reverse();
+  // run m4
+  let allTags = final_m3_m4["final_m4_graph"]["tags"];
   let submatch = {};
   let latest_ele = {};
   let latest_arr = {};
@@ -629,13 +254,19 @@ export function regexSubmatchState(text, tagged_simp_graph) {
     latest_ele[tag] = -2;
     latest_arr[tag] = -1;
   }
-  // run through Transition
-  let node = final_graph["start_state"];
-
+  let m4_node = final_m3_m4["final_m4_graph"]["start_state"];
+  m4_node = final_m3_m4["final_m4_graph"]["transitions"][m4_node][m3_states[0]];
   for (let i = 0; i < text.length; i++) {
     for (const tag in allTags) {
       if (
-        allTags[tag].has(JSON.stringify([node, transitions[node][text[i]]]))
+        allTags[tag].has(
+          JSON.stringify([
+            m4_node,
+            final_m3_m4["final_m4_graph"]["transitions"][m4_node][
+              m3_states[i + 1]
+            ],
+          ])
+        )
       ) {
         if (i == latest_ele[tag] + 1) {
           submatch[tag][latest_arr[tag]].push(i);
@@ -646,10 +277,48 @@ export function regexSubmatchState(text, tagged_simp_graph) {
         latest_ele[tag] = i;
       }
     }
-    node = transitions[node][text[i]];
+    m4_node =
+      final_m3_m4["final_m4_graph"]["transitions"][m4_node][m3_states[i + 1]];
   }
+
   return submatch;
 }
+
+// export function regexSubmatchState(text, tagged_simp_graph) {
+//   let final_graph = findMatchStateTagged(tagged_simp_graph);
+//   let allTags = final_graph["tags"];
+//   let transitions = final_graph["transitions"];
+//   console.log("final, gen_tagged_dfa: ", final_graph);
+//   console.log("text, gen_tagged: ", text);
+//   let submatch = {};
+//   let latest_ele = {};
+//   let latest_arr = {};
+//   for (const tag in allTags) {
+//     submatch[tag] = [];
+//     latest_ele[tag] = -2;
+//     latest_arr[tag] = -1;
+//   }
+//   // run through Transition
+//   let node = final_graph["start_state"];
+
+//   for (let i = 0; i < text.length; i++) {
+//     for (const tag in allTags) {
+//       if (
+//         allTags[tag].has(JSON.stringify([node, transitions[node][text[i]]]))
+//       ) {
+//         if (i == latest_ele[tag] + 1) {
+//           submatch[tag][latest_arr[tag]].push(i);
+//         } else {
+//           submatch[tag].push([i]);
+//           latest_arr[tag] += 1;
+//         }
+//         latest_ele[tag] = i;
+//       }
+//     }
+//     node = transitions[node][text[i]];
+//   }
+//   return submatch;
+// }
 
 export function finalRegexExtractState(regex, submatches, text) {
   const simp_graph = simplifyGraph(regex);
@@ -779,12 +448,3 @@ export function formatForCircom(final_graph) {
   final_graph["rev_transitions"] = rev_transitions;
   return final_graph;
 }
-
-// module.exports = {
-//   tagged_simplifyGraph,
-//   tagged_nfaToDfa,
-//   findMatchStateTagged,
-//   regexSubmatchState,
-//   finalRegexExtractState,
-//   formatForCircom,
-// };
