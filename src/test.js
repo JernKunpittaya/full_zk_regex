@@ -1,17 +1,9 @@
 // file for testing outputs of these js files in src folder
 // Just console.log(what you want), and run "yarn testfunc"
-import { simplifyGraph, findSubstrings, simplifyRegex } from "./gen_dfa";
-import {
-  tagged_simplifyGraph,
-  findMatchStateTagged,
-  formatForCircom,
-} from "./gen_tagged_dfa";
-import { reverseDFA } from "./gen_rev_dfa";
-import { gen_back_circom } from "./gen_back_circom";
-import { explore_gen_circom } from "./explore_gen_circom";
+import { explore_graph } from "./explore_graph";
 import { readSubmatch } from "./gen";
-import { gen_forw_circom } from "./gen_forw_circom";
-import { gen_all_circom } from "./gen_3steps_circom";
+import { gen_circom } from "./gen_circom";
+import { finalRegexExtractState } from "./gen_tagged_dfa";
 function test() {
   const text =
     "adsfasd DKI d=2211; DKI: v=12/; d=22; a=//121; d=1; bh=xUqTs2T2FPGCOB52 sdflj";
@@ -40,30 +32,14 @@ function test() {
     [7, 59],
     [61, 70],
   ];
-  readSubmatch(regex, submatches);
-  // const rev_graph = reverseDFA(simp_graph);
-  // console.log("rev graph: ", rev_graph);
-  // const matched_dfa = findSubstrings(simp_graph, text);
-  // for (const subs of matched_dfa[1]) {
-  //   var matched = text.slice(subs[0], subs[1] + 1);
-  //   console.log("matched: ", matched);
-  // }
-  // const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  // var final_graph = findMatchStateTagged(tagged_simp_graph);
-  // var allTags = final_graph["tags"];
-  // var transitions = final_graph["transitions"];
-  // console.log("final graph: ", final_graph);
-  // var circom_graph = formatForCircom(final_graph);
-  // console.log("for rev graph");
-  // var circom_rev_graph = formatForCircom(rev_graph);
-  console.log("circom jyaa: ");
-  // var result_circom = gen_back_circom(circom_rev_graph);
-  // let circom = gen_forw_circom(regex, submatches);
-  // let circom = gen_all_circom(regex, submatches);
+  // readSubmatch(regex, submatches);
+  finalRegexExtractState(regex, submatches, text);
+  console.log("circom here: ");
+  // test1: test generate circom circuit
+  // let circom = gen_circom(regex, submatches);
   // console.log(circom);
-  let result_circom = explore_gen_circom(regex, submatches);
-  console.log("result circuit!!");
-  // console.log(result_circom);
+  // test 2: test those m1 - m4 stuffs, especially m3, m4
+  // explore_graph(regex, submatches);
   console.log("Done!");
 }
 describe("test backend", function () {

@@ -1,12 +1,6 @@
 import { regexToM1 } from "./gen";
 import { minDfa } from "./lexical";
-import {
-  toNature,
-  simplifyGraph,
-  simplifyPlus,
-  simplifyRegex,
-  findSubstrings,
-} from "./gen_dfa";
+import { toNature, simplifyGraph, findSubstrings } from "./gen_dfa";
 import { M1ToM2 } from "./gen_m2";
 import { M2ToM3 } from "./gen_m3";
 import { createM4, registerToState } from "./gen_m4";
@@ -231,8 +225,8 @@ export function regexSubmatchState(text, tagged_simp_graph) {
   let m4_graph = createM4(tagged_simp_graph);
   let tagged_m4_graph = registerToState(m4_graph);
   let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
-  console.log("final m3: ", final_m3_m4["final_m3_graph"]);
-  console.log("final m4: ", final_m3_m4["final_m4_graph"]);
+  // console.log("final m3: ", final_m3_m4["final_m3_graph"]);
+  // console.log("final m4: ", final_m3_m4["final_m4_graph"]);
 
   // run reversed text via m3
   let m3_states = [];
@@ -284,45 +278,9 @@ export function regexSubmatchState(text, tagged_simp_graph) {
   return submatch;
 }
 
-// export function regexSubmatchState(text, tagged_simp_graph) {
-//   let final_graph = findMatchStateTagged(tagged_simp_graph);
-//   let allTags = final_graph["tags"];
-//   let transitions = final_graph["transitions"];
-//   console.log("final, gen_tagged_dfa: ", final_graph);
-//   console.log("text, gen_tagged: ", text);
-//   let submatch = {};
-//   let latest_ele = {};
-//   let latest_arr = {};
-//   for (const tag in allTags) {
-//     submatch[tag] = [];
-//     latest_ele[tag] = -2;
-//     latest_arr[tag] = -1;
-//   }
-//   // run through Transition
-//   let node = final_graph["start_state"];
-
-//   for (let i = 0; i < text.length; i++) {
-//     for (const tag in allTags) {
-//       if (
-//         allTags[tag].has(JSON.stringify([node, transitions[node][text[i]]]))
-//       ) {
-//         if (i == latest_ele[tag] + 1) {
-//           submatch[tag][latest_arr[tag]].push(i);
-//         } else {
-//           submatch[tag].push([i]);
-//           latest_arr[tag] += 1;
-//         }
-//         latest_ele[tag] = i;
-//       }
-//     }
-//     node = transitions[node][text[i]];
-//   }
-//   return submatch;
-// }
-
 export function finalRegexExtractState(regex, submatches, text) {
   const simp_graph = simplifyGraph(regex);
-  console.log("min_dfa num states: ", simp_graph["states"].length);
+  console.log("min_dfa num states: ", simp_graph["states"].size);
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
   console.log("tagged dfa num states: ", tagged_simp_graph["states"].length);
   const matched_dfa = findSubstrings(simp_graph, text);

@@ -35,7 +35,7 @@ function findAllPathsBetw(m1_graph, start, end) {
 export function createM4(m1_graph) {
   let m2_graph = M1ToM2(m1_graph);
   let m3_graph = M2ToM3(m2_graph);
-  console.log("m3 jyaa: ", m3_graph);
+  // console.log("m3 here in gen_m4: ", m3_graph);
   // delta1 is transition in m1 that consists of only alphabet
   let delta1 = {};
   // m4_transitions = {state: {b: next, a: next}, ...}
@@ -88,6 +88,7 @@ export function createM4(m1_graph) {
       }
 
       if (paths.length > 0) {
+        // Future: Deal with ambiguity matching! For now, we just defaults to first one
         // if (paths.length > 1) {
         //   throw new Error("Ambiguous subgroup matching");
         // }
@@ -118,6 +119,7 @@ export function createM4(m1_graph) {
         }
       }
       if (paths.length > 0) {
+        // Future: Deal with ambiguity matching! For now, we just defaults to first one
         // if (paths.length > 1) {
         //   throw new Error("Ambiguous subgroup matching in starting phase");
         // }

@@ -1,3 +1,6 @@
+// ============================================================================
+// NOT USED, left here in case of future use :)
+//==============================================================================
 // given simp_graph (plain dfa), return its reversed version.
 export function reverseDFA(simp_graph) {
   // simp_q = [
