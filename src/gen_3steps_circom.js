@@ -38,8 +38,20 @@ export function gen_all_circom(regex, submatches) {
 
   // build tpl_head, join with \n
   const forw_tpl_head = [];
-  forw_tpl_head.push("template Regex (msg_bytes){");
+  forw_tpl_head.push("template Regex (msg_bytes, reveal_bytes, group_idx){");
   forw_tpl_head.push("\tsignal input in[msg_bytes];");
+  // og tpl_head start
+  forw_tpl_head.push("\tsignal input match_idx;");
+  forw_tpl_head.push("\tsignal output start_idx;");
+  forw_tpl_head.push("\tsignal output group_match_count;");
+  forw_tpl_head.push("\tsignal output entire_count;");
+  forw_tpl_head.push("");
+  forw_tpl_head.push(
+    "\tsignal reveal_shifted_intermediate[reveal_bytes][msg_bytes];"
+  );
+  forw_tpl_head.push("\tsignal output reveal_shifted[reveal_bytes];");
+  forw_tpl_head.push("");
+  // og tpl_head end
   // add forw_adj_reveal (adjusted reveal) to mark the matched points for m3 dfa
   forw_tpl_head.push("\tsignal forw_adj_reveal[msg_bytes];");
   forw_tpl_head.push("");
@@ -144,6 +156,7 @@ export function gen_all_circom(regex, submatches) {
         forw_and_i += 1;
       }
       for (let c of forw_vals) {
+        // to make sure just one alphabet, in backend
         // assert.strictEqual(c.length, 1);
         forw_lines.push(`\t//${c}`);
         forw_lines.push(`\tforw_eq[${forw_eq_i}][i] = IsEqual();`);
@@ -387,6 +400,7 @@ export function gen_all_circom(regex, submatches) {
         m3_and_i += 1;
       }
       for (let c of m3_vals) {
+        // to make sure just one alphabet (for backend)
         // assert.strictEqual(c.length, 1);
         m3_lines.push(`\t//${c}`);
         m3_lines.push(`\tm3_eq[${m3_eq_i}][i] = IsEqual();`);
@@ -443,7 +457,7 @@ export function gen_all_circom(regex, submatches) {
 
   m3_lines.push("}");
   // deal with m3_states_num
-  let m3_states_num_str = "m3_states_num[msg_bytes - i] <== ";
+  let m3_states_num_str = "m3_states_num[msg_bytes - i - 1] <== ";
   for (let i = 0; i < m3_N; i++) {
     if (i == m3_N - 1) {
       m3_states_num_str += ` m3_states[i][${i}]*${i};`;
@@ -455,18 +469,20 @@ export function gen_all_circom(regex, submatches) {
   m3_lines.push(`\t${m3_states_num_str}`);
   m3_lines.push("}");
   m3_lines.push("");
-  // separate final state num since m3_states[msg_bytes][0] is undefined.
-  //(make sense or it have no alphabet to transition in dfa, and we dont really want to accept epsilon)
-  let m3_final_states_num_str = `m3_states_num[0] <== `;
-  for (let i = 1; i < m3_N; i++) {
-    if (i == m3_N - 1) {
-      m3_final_states_num_str += ` m3_states[msg_bytes][${i}]*${i};`;
-    } else {
-      m3_final_states_num_str += ` m3_states[msg_bytes][${i}]*${i} +`;
-    }
-  }
-  m3_lines.push(m3_final_states_num_str);
-  m3_lines.push("");
+  // Legacy: gone since we shift m3_adj_reveal and m3_states_num to the left by 1 to
+  // work with m4 definition of transition
+  // // separate final state num since m3_states[msg_bytes][0] is undefined.
+  // //(make sense or it have no alphabet to transition in dfa, and we dont really want to accept epsilon)
+  // let m3_final_states_num_str = `m3_states_num[0] <== `;
+  // for (let i = 1; i < m3_N; i++) {
+  //   if (i == m3_N - 1) {
+  //     m3_final_states_num_str += ` m3_states[msg_bytes][${i}]*${i};`;
+  //   } else {
+  //     m3_final_states_num_str += ` m3_states[msg_bytes][${i}]*${i} +`;
+  //   }
+  // }
+  // m3_lines.push(m3_final_states_num_str);
+  // m3_lines.push("");
 
   // deal with accepted
   m3_lines.push("component m3_check_accepted[msg_bytes+1];");
@@ -503,7 +519,7 @@ export function gen_all_circom(regex, submatches) {
   m3_declarations.push(`signal m3_states[msg_bytes+1][${m3_N}];`);
   // m3_states_num[i+1] tells which state alphabet i leads into (unique state since we use forw_adj_reveal)
   // already reversed from m3 for running m4
-  m3_declarations.push("signal output m3_states_num[msg_bytes+1];");
+  m3_declarations.push("signal m3_states_num[msg_bytes+1];");
   m3_declarations.push("");
 
   let m3_init_code = [];
@@ -526,7 +542,7 @@ export function gen_all_circom(regex, submatches) {
   m3_reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
   // adjusted m3_adj_reveal to have starting point for m4
   m3_reveal_code.push(
-    "\tm3_adj_reveal[i] <== m3_check_accepted[msg_bytes - i].out;"
+    "\tm3_adj_reveal[i] <== m3_check_accepted[msg_bytes - i - 1].out;"
   );
   m3_reveal_code.push("}");
   m3_reveal_code.push("");
@@ -536,11 +552,333 @@ export function gen_all_circom(regex, submatches) {
     ...m3_lines,
     ...m3_reveal_code,
   ];
+
+  //================================== step 3 (m4 region) ==============================
+  let new_tags = {};
+  for (let key in m4_circom_graph["tags"]) {
+    let tran_arr = [];
+    for (let ele of m4_circom_graph["tags"][key]) {
+      tran_arr.push(ele);
+    }
+    new_tags[key] = tran_arr;
+  }
+
+  const N = m4_circom_graph["states"].size;
+  const accept_states = m4_circom_graph["accepted_states"];
+
+  let eq_i = 0;
+  let lt_i = 0;
+  let and_i = 0;
+  let multi_or_i = 0;
+  let lines = [];
+  lines.push("for (var i = 0; i < msg_bytes; i++) {");
+
+  for (let i = 1; i < N; i++) {
+    const outputs = [];
+    for (let [k, prev_i] of m4_circom_graph["rev_transitions"][i]) {
+      let vals = new Set(JSON.parse(k));
+      const eq_outputs = [];
+
+      if (
+        new Set([...uppercase].filter((x) => vals.has(x))).size ===
+        uppercase.size
+      ) {
+        vals = new Set([...vals].filter((x) => !uppercase.has(x)));
+        lines.push("\t//UPPERCASE");
+        lines.push(`\tlt[${lt_i}][i] = LessThan(8);`);
+        lines.push(`\tlt[${lt_i}][i].in[0] <== 64;`);
+        lines.push(`\tlt[${lt_i}][i].in[1] <== m3_states_num[i];`);
+
+        lines.push(`\tlt[${lt_i + 1}][i] = LessThan(8);`);
+        lines.push(`\tlt[${lt_i + 1}][i].in[0] <== m3_states_num[i];`);
+        lines.push(`\tlt[${lt_i + 1}][i].in[1] <== 91;`);
+
+        lines.push(`\tand[${and_i}][i] = AND();`);
+        lines.push(`\tand[${and_i}][i].a <== lt[${lt_i}][i].out;`);
+        lines.push(`\tand[${and_i}][i].b <== lt[${lt_i + 1}][i].out;`);
+
+        eq_outputs.push(["and", and_i]);
+        lt_i += 2;
+        and_i += 1;
+      }
+      if (
+        new Set([...lowercase].filter((x) => vals.has(x))).size ===
+        lowercase.size
+      ) {
+        vals = new Set([...vals].filter((x) => !lowercase.has(x)));
+        lines.push("\t//lowercase");
+        lines.push(`\tlt[${lt_i}][i] = LessThan(8);`);
+        lines.push(`\tlt[${lt_i}][i].in[0] <== 96;`);
+        lines.push(`\tlt[${lt_i}][i].in[1] <== m3_states_num[i];`);
+
+        lines.push(`\tlt[${lt_i + 1}][i] = LessThan(8);`);
+        lines.push(`\tlt[${lt_i + 1}][i].in[0] <== m3_states_num[i];`);
+        lines.push(`\tlt[${lt_i + 1}][i].in[1] <== 123;`);
+
+        lines.push(`\tand[${and_i}][i] = AND();`);
+        lines.push(`\tand[${and_i}][i].a <== lt[${lt_i}][i].out;`);
+        lines.push(`\tand[${and_i}][i].b <== lt[${lt_i + 1}][i].out;`);
+
+        eq_outputs.push(["and", and_i]);
+        lt_i += 2;
+        and_i += 1;
+      }
+      if (
+        new Set([...digits].filter((x) => vals.has(x))).size === digits.size
+      ) {
+        vals = new Set([...vals].filter((x) => !digits.has(x)));
+        lines.push("\t//digits");
+        lines.push(`\tlt[${lt_i}][i] = LessThan(8);`);
+        lines.push(`\tlt[${lt_i}][i].in[0] <== 47;`);
+        lines.push(`\tlt[${lt_i}][i].in[1] <== m3_states_num[i];`);
+
+        lines.push(`\tlt[${lt_i + 1}][i] = LessThan(8);`);
+        lines.push(`\tlt[${lt_i + 1}][i].in[0] <== m3_states_num[i];`);
+        lines.push(`\tlt[${lt_i + 1}][i].in[1] <== 58;`);
+
+        lines.push(`\tand[${and_i}][i] = AND();`);
+        lines.push(`\tand[${and_i}][i].a <== lt[${lt_i}][i].out;`);
+        lines.push(`\tand[${and_i}][i].b <== lt[${lt_i + 1}][i].out;`);
+
+        eq_outputs.push(["and", and_i]);
+        lt_i += 2;
+        and_i += 1;
+      }
+      for (let c of vals) {
+        // In m4 case, c represents state in m3, hence can be larger than just one alphabet
+        // NOOO assert.strictEqual(c.length, 1);
+
+        lines.push(`\t//string compare: ${c}`);
+        lines.push(`\teq[${eq_i}][i] = IsEqual();`);
+        lines.push(`\teq[${eq_i}][i].in[0] <== m3_states_num[i];`);
+        lines.push(`\teq[${eq_i}][i].in[1] <== ${c};`);
+        eq_outputs.push(["eq", eq_i]);
+        eq_i += 1;
+      }
+
+      lines.push(`\tand[${and_i}][i] = AND();`);
+      lines.push(`\tand[${and_i}][i].a <== states[i][${prev_i}];`);
+
+      if (eq_outputs.length === 1) {
+        lines.push(
+          `\tand[${and_i}][i].b <== ${eq_outputs[0][0]}[${eq_outputs[0][1]}][i].out;`
+        );
+      } else if (eq_outputs.length > 1) {
+        lines.push(
+          `\tmulti_or[${multi_or_i}][i] = MultiOR(${eq_outputs.length});`
+        );
+        for (let output_i = 0; output_i < eq_outputs.length; output_i++) {
+          lines.push(
+            `\tmulti_or[${multi_or_i}][i].in[${output_i}] <== ${eq_outputs[output_i][0]}[${eq_outputs[output_i][1]}][i].out;`
+          );
+        }
+        lines.push(`\tand[${and_i}][i].b <== multi_or[${multi_or_i}][i].out;`);
+        multi_or_i += 1;
+      }
+      outputs.push(and_i);
+      and_i += 1;
+    }
+
+    if (outputs.length === 1) {
+      lines.push(`\tstates[i+1][${i}] <== and[${outputs[0]}][i].out;`);
+    } else if (outputs.length > 1) {
+      lines.push(`\tmulti_or[${multi_or_i}][i] = MultiOR(${outputs.length});`);
+      for (let output_i = 0; output_i < outputs.length; output_i++) {
+        lines.push(
+          `\tmulti_or[${multi_or_i}][i].in[${output_i}] <== and[${outputs[output_i]}][i].out;`
+        );
+      }
+      lines.push(`\tstates[i+1][${i}] <== multi_or[${multi_or_i}][i].out;`);
+      multi_or_i += 1;
+    }
+  }
+
+  lines.push("}");
+  lines.push("signal final_state_sum[msg_bytes+1];");
+  // deal with accepted
+  lines.push("component check_accepted[msg_bytes+1];");
+  lines.push(`check_accepted[0] = MultiOR(${accept_states.size});`);
+  let count_setInd = 0;
+  for (let element of accept_states) {
+    lines.push(
+      `check_accepted[0].in[${count_setInd}] <== states[0][${parseInt(
+        element
+      )}];`
+    );
+    count_setInd++;
+  }
+  lines.push(`final_state_sum[0] <== check_accepted[0].out;`);
+  lines.push("for (var i = 1; i <= msg_bytes; i++) {");
+  lines.push(`\tcheck_accepted[i] = MultiOR(${accept_states.size});`);
+  count_setInd = 0;
+  for (let element of accept_states) {
+    lines.push(
+      `\tcheck_accepted[i].in[${count_setInd}] <== states[i][${parseInt(
+        element
+      )}] ;`
+    );
+    count_setInd++;
+  }
+  lines.push(
+    `\tfinal_state_sum[i] <== final_state_sum[i-1] + check_accepted[i].out;`
+  );
+  lines.push("}");
+  lines.push("entire_count <== final_state_sum[msg_bytes];");
+
+  let declarations = [];
+
+  if (eq_i > 0) {
+    declarations.push(`component eq[${eq_i}][msg_bytes];`);
+  }
+  if (lt_i > 0) {
+    declarations.push(`component lt[${lt_i}][msg_bytes];`);
+  }
+  if (and_i > 0) {
+    declarations.push(`component and[${and_i}][msg_bytes];`);
+  }
+  if (multi_or_i > 0) {
+    declarations.push(`component multi_or[${multi_or_i}][msg_bytes];`);
+  }
+  declarations.push(`signal states[msg_bytes+1][${N}];`);
+  declarations.push("");
+
+  let init_code = [];
+
+  init_code.push("for (var i = 0; i < msg_bytes; i++) {");
+  init_code.push("\tstates[i][0] <== m3_adj_reveal[i];");
+  init_code.push("}");
+
+  init_code.push(`for (var i = 1; i < ${N}; i++) {`);
+  init_code.push("\tstates[0][i] <== 0;");
+  init_code.push("}");
+
+  init_code.push("");
+
+  const reveal_code = [];
+
+  reveal_code.push("signal reveal[msg_bytes];");
+  for (let i = 0; i < Object.keys(new_tags).length; i++) {
+    reveal_code.push(
+      `component and_track${i}[msg_bytes][${new_tags[i].length}];`
+    );
+  }
+
+  reveal_code.push(
+    `component or_track[msg_bytes][${Object.keys(new_tags).length}];`
+  );
+
+  // calculate or_track for all tags
+  reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
+
+  for (let tagId = 0; tagId < Object.keys(new_tags).length; tagId++) {
+    reveal_code.push(
+      `\tor_track[i][${tagId}] = MultiOR(${new_tags[tagId].length});`
+    );
+    for (let tranId = 0; tranId < new_tags[tagId].length; tranId++) {
+      reveal_code.push(`\tand_track${tagId}[i][${tranId}] = AND();`);
+      reveal_code.push(
+        `\tand_track${tagId}[i][${tranId}].a <== states[i+1][${
+          JSON.parse(new_tags[tagId][tranId])[1]
+        }];`
+      );
+      reveal_code.push(
+        `\tand_track${tagId}[i][${tranId}].b <== states[i][${
+          JSON.parse(new_tags[tagId][tranId])[0]
+        }];`
+      );
+
+      reveal_code.push(
+        `\tor_track[i][${tagId}].in[${tranId}] <== and_track${tagId}[i][${tranId}].out;`
+      );
+    }
+  }
+  reveal_code.push("}");
+  reveal_code.push("");
+  // calculate reveal
+  reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
+  reveal_code.push("\treveal[i] <== in[i] * or_track[i][group_idx].out;");
+  reveal_code.push("}");
+  reveal_code.push("");
+  lines = [...declarations, ...init_code, ...lines, ...reveal_code];
+
+  // tpl_end
+  let tpl_end = [];
+  tpl_end.push("\tvar start_index = 0;");
+  tpl_end.push("var count = 0;");
+  tpl_end.push("");
+  tpl_end.push("component check_start[msg_bytes + 1];");
+  tpl_end.push("component check_match[msg_bytes + 1];");
+  tpl_end.push("component check_matched_start[msg_bytes + 1];");
+  tpl_end.push("component matched_idx_eq[msg_bytes];");
+  tpl_end.push("");
+  tpl_end.push("for (var i = 0; i < msg_bytes; i++) {");
+  tpl_end.push("\tif (i == 0) {");
+  tpl_end.push("\t\tcount += or_track[0][group_idx].out;");
+  tpl_end.push("\t}");
+  tpl_end.push("\telse {");
+  tpl_end.push("\t\tcheck_start[i] = AND();");
+  tpl_end.push("\t\tcheck_start[i].a <== or_track[i][group_idx].out;");
+  tpl_end.push("\t\tcheck_start[i].b <== 1 - or_track[i-1][group_idx].out;");
+  tpl_end.push("\t\tcount += check_start[i].out;");
+  tpl_end.push("");
+  tpl_end.push("\t\tcheck_match[i] = IsEqual();");
+  tpl_end.push("\t\tcheck_match[i].in[0] <== count;");
+  tpl_end.push("\t\tcheck_match[i].in[1] <== match_idx + 1;");
+  tpl_end.push("");
+  tpl_end.push("\t\tcheck_matched_start[i] = AND();");
+  tpl_end.push("\t\tcheck_matched_start[i].a <== check_match[i].out;");
+  tpl_end.push("\t\tcheck_matched_start[i].b <== check_start[i].out;");
+  tpl_end.push("\t\tstart_index += check_matched_start[i].out * i;");
+  tpl_end.push("\t}");
+  tpl_end.push("");
+  tpl_end.push("\tmatched_idx_eq[i] = IsEqual();");
+  tpl_end.push(
+    "\tmatched_idx_eq[i].in[0] <== or_track[i][group_idx].out * count;"
+  );
+  tpl_end.push("\tmatched_idx_eq[i].in[1] <== match_idx + 1;");
+  tpl_end.push("}");
+  tpl_end.push("");
+  tpl_end.push("component match_start_idx[msg_bytes];");
+  tpl_end.push("for (var i = 0; i < msg_bytes; i++) {");
+  tpl_end.push("\tmatch_start_idx[i] = IsEqual();");
+  tpl_end.push("\tmatch_start_idx[i].in[0] <== i;");
+  tpl_end.push("\tmatch_start_idx[i].in[1] <== start_index;");
+  tpl_end.push("}");
+  tpl_end.push("");
+  tpl_end.push("signal reveal_match[msg_bytes];");
+  tpl_end.push("for (var i = 0; i < msg_bytes; i++) {");
+  tpl_end.push("\treveal_match[i] <== matched_idx_eq[i].out * reveal[i];");
+  tpl_end.push("}");
+  tpl_end.push("");
+  tpl_end.push("for (var j = 0; j < reveal_bytes; j++) {");
+  tpl_end.push("\treveal_shifted_intermediate[j][j] <== 0;");
+  tpl_end.push("\tfor (var i = j + 1; i < msg_bytes; i++) {");
+  tpl_end.push(
+    "\t\treveal_shifted_intermediate[j][i] <== reveal_shifted_intermediate[j][i - 1] + match_start_idx[i-j].out * reveal_match[i];"
+  );
+  tpl_end.push("\t}");
+  tpl_end.push(
+    "\treveal_shifted[j] <== reveal_shifted_intermediate[j][msg_bytes - 1];"
+  );
+  tpl_end.push("}");
+  tpl_end.push("");
+  tpl_end.push("group_match_count <== count;");
+  tpl_end.push("start_idx <== start_index;");
+
   // ============================= final_text aggregation ===========================
   final_text += forw_lib_head.join("\n") + "\n";
   final_text += forw_tpl_head.join("\n") + "\n" + m3_tpl_head.join("\n") + "\n";
   final_text +=
-    "\n\t" + forw_lines.join("\n\t") + "\n\t" + m3_lines.join("\n\t") + "\n}";
-  final_text += "\n\ncomponent main { public [in] } = Regex(100);";
+    "\n\t" +
+    forw_lines.join("\n\t") +
+    "\n\t" +
+    m3_lines.join("\n\t") +
+    "\n\t" +
+    lines.join("\n\t") +
+    "\n" +
+    tpl_end.join("\n\t") +
+    "\n}";
+  final_text +=
+    "\n\ncomponent main { public [in, match_idx] } = Regex(100, 44,2);";
   return final_text;
 }

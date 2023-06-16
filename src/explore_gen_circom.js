@@ -24,8 +24,9 @@ export function explore_gen_circom(regex, submatches) {
   let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
   const forw_graph = formatForCircom(final_m3_m4["final_m4_graph"]);
   const rev_graph = formatForCircom(final_m3_m4["final_m3_graph"]);
-  console.log("nice m4 (forw): ", forw_graph);
-  console.log("nice m3 (rev): ", rev_graph);
+  console.log("m4 graph: ", forw_graph);
+  console.log("m4 rev: ", forw_graph["tags"]);
+  // console.log("nice m3 (rev): ", rev_graph);
   // lib_head, join with \n
   let final_text = "";
   const lib_head = [];

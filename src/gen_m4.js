@@ -233,6 +233,6 @@ export function registerToState(m4_graph) {
     start_state: m4_graph["start_state"],
     accepted_states: m4_graph["accepted_states"],
     transitions: final_transitions,
-    allTags: allTags,
+    tags: allTags,
   };
 }

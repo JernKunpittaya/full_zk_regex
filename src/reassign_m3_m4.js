@@ -65,9 +65,9 @@ export function reassignM3M4(m3_graph, m4_graph) {
     new_m4_accepted_states.add(m4_state_dict[ele]);
   }
   let new_allTags = {};
-  for (const key in m4_graph["allTags"]) {
+  for (const key in m4_graph["tags"]) {
     new_allTags[key] = new Set();
-    for (const arrStr of m4_graph["allTags"][key]) {
+    for (const arrStr of m4_graph["tags"][key]) {
       let arr = JSON.parse(arrStr);
       new_allTags[key].add(
         JSON.stringify([m4_state_dict[arr[0]], m4_state_dict[arr[1]]])
@@ -79,7 +79,7 @@ export function reassignM3M4(m3_graph, m4_graph) {
     start_state: m4_state_dict[m4_graph["start_state"]],
     accepted_states: new_m4_accepted_states,
     transitions: final_m4_transitions,
-    allTags: new_allTags,
+    tags: new_allTags,
   };
 
   //   console.log("final finall m4: ", new_m4_graph);
