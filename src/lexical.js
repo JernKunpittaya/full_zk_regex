@@ -1,3 +1,5 @@
+// This file is original lexical.js file to convert regex to minimum dfa
+// ==============================================================================
 /*jslint browser: true*/
 /*global require, exports*/
 // import { STRING_PRESELECTOR } from "../src/helpers/constants.ts";

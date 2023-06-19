@@ -1,16 +1,28 @@
-// Assume only 1 regex matched
-// Show where to start running M4, and corresponding transition for M4
+// This file is for creating circom circuit that can match/ reveal subgroup of regex we are interested in
+// must specify the number of occurence of that subgroup we are interested in
+// We assume only 1 regex matched, but they can be multiple subgroup matches with many occurence of each subgroup
+//===================================================================================
 import { simplifyGraph } from "./gen_dfa";
-import { formatForCircom, tagged_simplifyGraph } from "./gen_tagged_dfa";
-import { M1ToM2 } from "./gen_m2";
-import { M2ToM3 } from "./gen_m3";
-import { createM4, registerToState } from "./gen_m4";
-import { reassignM3M4 } from "./reassign_m3_m4";
-// generating circom for backward DFA
-// Step 1:  naive gen_forw_circom
-// Step 2: gen m3
-// Step 3: gen m4
+import {
+  tagged_simplifyGraph,
+  M1ToM2,
+  M2ToM3,
+  createM4,
+  registerToState,
+  reassignM3M4,
+} from "./gen_tagged_dfa";
+import { formatForCircom } from "./helper_required";
+
+// Step generating circom for backward DFA
+// Step 1:  naively gen_forw_circom by using the whole simple DFA to find that 1 regex match, store the end alphabet that leads into accepted states
+// Step 2: Use m3 graph and start running on backward alphabet starting from what we marked as last alphabet in matched regex in step 1, for each backward alphabet DFA comes across,
+//         we store the state that the m3 DFA is transitioned into.
+// Step 3: Use m4 graph and use end point of m3 dfa as starting point, but now back to running on forward.
+// but instead of feeding alphabets into m4 DFA, we use the m3 states we got from step 2 instad.
 export function gen_circom(regex, submatches) {
+  // ========================= step 1 region (forw region) =============================
+
+  // gen naive DFA graph that matches the whole regex.
   const forw_graph = formatForCircom(simplifyGraph(regex));
   // lib_head, join with \n
   let final_text = "";
@@ -51,13 +63,13 @@ export function gen_circom(regex, submatches) {
   );
   forw_tpl_head.push("\tsignal output reveal_shifted[reveal_bytes];");
   forw_tpl_head.push("");
-  // og tpl_head end
-  // add forw_adj_reveal (adjusted reveal) to mark the matched points for m3 dfa
+
+  // add forw_adj_reveal (adjusted reveal) to mark the starting points for m3 dfa
   forw_tpl_head.push("\tsignal forw_adj_reveal[msg_bytes];");
   forw_tpl_head.push("");
 
   // compile content placeholder, join with \n\t
-  // format tags stuffs
+  // format tags stuffs for forw part
   const forw_N = forw_graph["states"].size;
   const forw_accept_states = forw_graph["accepted_states"];
 
@@ -268,8 +280,6 @@ export function gen_circom(regex, submatches) {
 
   const forw_reveal_code = [];
 
-  // new_tags region below
-
   // calculate reveal
   forw_reveal_code.push("for (var i = 0; i < msg_bytes; i++) {");
   // forw_adj_reveal is in reading backwards to be compatible with m3 reverse reading
@@ -284,10 +294,6 @@ export function gen_circom(regex, submatches) {
     ...forw_lines,
     ...forw_reveal_code,
   ];
-
-  // add main function
-
-  // return forw_final_text;
 
   // ========================= step 2 region (m3 region) =============================
   const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
@@ -471,8 +477,8 @@ export function gen_circom(regex, submatches) {
   m3_lines.push("");
   // Legacy: gone since we shift m3_adj_reveal and m3_states_num to the left by 1 to
   // work with m4 definition of transition
-  // // separate final state num since m3_states[msg_bytes][0] is undefined.
-  // //(make sense or it have no alphabet to transition in dfa, and we dont really want to accept epsilon)
+  // separate final state num since m3_states[msg_bytes][0] is undefined.
+  //(make sense or it have no alphabet to transition in dfa, and we dont really want to accept epsilon)
   // let m3_final_states_num_str = `m3_states_num[0] <== `;
   // for (let i = 1; i < m3_N; i++) {
   //   if (i == m3_N - 1) {
@@ -647,7 +653,6 @@ export function gen_circom(regex, submatches) {
       for (let c of vals) {
         // In m4 case, c represents state in m3, hence can be larger than just one alphabet
         // NOOO assert.strictEqual(c.length, 1);
-
         lines.push(`\t//string compare: ${c}`);
         lines.push(`\teq[${eq_i}][i] = IsEqual();`);
         lines.push(`\teq[${eq_i}][i].in[0] <== m3_states_num[i];`);

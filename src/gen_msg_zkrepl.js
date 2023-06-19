@@ -1,3 +1,6 @@
+// This file is for generating array of character's ascii code of the string we are interested in
+// Mainly for using as the input to test in zkrepl.dev
+//=================================================================================
 export function genInputzkRepl(text, len) {
   let result = [];
   let extra = 0;

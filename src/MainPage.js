@@ -8,8 +8,9 @@ import { Highlighter } from "./components/Highlighter";
 import { saveAs } from "file-saver";
 import { genInputzkRepl } from "./gen_msg_zkrepl";
 import { gen_circom } from "./gen_circom";
-import { simplifyGraph, findSubstrings, simplifyRegex } from "./gen_dfa";
-import { tagged_simplifyGraph, regexSubmatchState } from "./gen_tagged_dfa";
+import { simplifyGraph, findSubstrings } from "./gen_dfa";
+import { simplifyRegex } from "./helper_required";
+import { tagged_simplifyGraph, getTaggedResult } from "./gen_tagged_dfa";
 export const MainPage = () => {
   // to be input in the future
   //   const testText = "hello Jern ja I'm here";
@@ -83,7 +84,7 @@ export const MainPage = () => {
     for (const subs of matched_dfa[1]) {
       let matched = text.slice(subs[0], subs[1] + 1);
       tagged_dictionary[matched] = {};
-      let tag_result = regexSubmatchState(matched, tagged_simp_graph);
+      let tag_result = getTaggedResult(matched, tagged_simp_graph);
       // now iterate through each tag result
       for (let index in tag_result) {
         tagged_dictionary[matched][index] = [];
