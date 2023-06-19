@@ -1,5 +1,8 @@
+// This file is for creating DFA-tagged version
+// Create by putting tag as a couple of states over the subgroup match we are interested in,
+// then, minimalize it like naive DFA, we treat this DFA with tag states S, E as M1 graph,
+// from then, we construct M2 to M4 as in paper.
 //==================================================================================
-// gen DFA, tagged version
 import { parseRegex, minDfa, nfaToDfa } from "./lexical";
 import { simplifyRegex, simplifyPlus, toNature } from "./helper_required";
 
@@ -759,6 +762,7 @@ export function registerToState(m4_graph) {
   };
 }
 
+// function for reassigning state name of m3 and m4 into just consecutive numbers
 // m4_graph is after getting allTags
 export function reassignM3M4(m3_graph, m4_graph) {
   // reassign state number in m3

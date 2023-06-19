@@ -1,8 +1,11 @@
+// This file is for helper functions that help in reading our code, but not necessary
+//==============================================================================
 import { simplifyRegex, simplifyPlus } from "./helper_required";
 import { simplifyGraph, findSubstrings } from "./gen_dfa";
 import { getTaggedResult, tagged_simplifyGraph } from "./gen_tagged_dfa";
 //=================================== Easy Reading region =================================
 
+// function to read how submatches correspond to the subgroup we are interested in
 export function readSubmatch(regex, submatches) {
   regex = simplifyRegex(regex);
   // console.log("og regex: ", regex);
@@ -100,6 +103,7 @@ export function simplifyM1(m1) {
   return { q1: q1, accepted: accepted, trans: trans };
 }
 
+// function to overall show the result of all subgroup extraction
 export function finalRegexExtractState(regex, submatches, text) {
   const simp_graph = simplifyGraph(regex);
   console.log("min_dfa num states: ", simp_graph["states"].size);
