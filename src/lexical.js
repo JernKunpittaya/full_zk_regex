@@ -1,9 +1,5 @@
 // This file is original lexical.js file to convert regex to minimum dfa
 // ==============================================================================
-/*jslint browser: true*/
-/*global require, exports*/
-// import { STRING_PRESELECTOR } from "../src/helpers/constants.ts";
-
 /**
  * Try parsing simple regular expression to syntax tree.
  *
@@ -14,14 +10,14 @@
  *   Star:  S -> S *
  *   Text:  S -> [0-9a-zA-Z]
  *   S -> ( S )
- *
  * Extension:
  *   Plus:  S -> S + -> S S *
  *   Ques:  S -> S ? -> (S | ϵ)
- *
  * @param {string} text The input regular expression
  * @return {string|object} Returns a string that is an error message if failed to parse the expression,
  *                         otherwise returns an object which is the syntax tree.
+ *
+ * Edited from https://github.com/CyberZHG/toolbox/blob/gh-pages/js/lexical.js
  */
 export function parseRegex(text) {
   "use strict";
@@ -160,30 +156,19 @@ export function parseRegex(text) {
 
   while (i < text.length) {
     if (text[i] == "\\") {
-      // Not necessary, \n stuffs are already interpreted as one thing
-      // change here to make fancy: \n, \t, \r, \x0b, \x0c
-      // if (text[i + 1] == "n") {
-      //   new_text.push(["\n"]);
-      // } else if (text[i + 1] == "t") {
-      //   new_text.push(["\t"]);
-      // } else if (text[i + 1] == "r") {
-      //   new_text.push(["\r"]);
-      // } else if (
-      //   text[i + 1] == "x" &&
-      //   text[i + 2] == "0" &&
-      //   text[i + 3] == "b"
-      // ) {
-      //   new_text.push(["\x0b"]);
-      //   console.log("haha");
-      //   i += 2;
-      // } else if (
-      //   text[i + 1] == "x" &&
-      //   text[i + 2] == "0" &&
-      //   text[i + 3] == "c"
-      // ) {
-      //   new_text.push(["\x0c"]);
-      //   i += 2;
-      // } else {
+      // Credit to Aayush's code: btw I think not necessary because \n& frens stuffs are already interpreted as one thing
+      // const escapeMap = {
+      //   n: "\n",
+      //   r: "\r",
+      //   t: "\t",
+      //   v: "\v",
+      //   f: "\f",
+      //   "^": String.fromCharCode(128),
+      // };
+      // const char = text[i + 1];
+      // new_text.push([escapeMap[char] || char]);
+      // i += 2;
+      // original
       new_text.push([text[i + 1]]);
       // }
       // done change
@@ -294,6 +279,11 @@ export function nfaToDfa(nfa) {
     }
     while (stack.length > 0) {
       top = stack.pop();
+      // if top is of type string and starts with "Error" then return error
+      if (typeof top === "string" && top[0] === "E") {
+        console.log(top);
+        continue;
+      }
       for (i = 0; i < top.edges.length; i += 1) {
         if (top.edges[i][0] === "ϵ") {
           if (closure.indexOf(top.edges[i][1]) < 0) {
@@ -583,8 +573,9 @@ export function minDfa(dfa) {
     });
     Object.keys(edges).forEach(function (from) {
       Object.keys(edges[from]).forEach(function (to) {
-        // change here
+        // change to modified symbol to match \n stuffs
         // symbol = JSON.stringify(Object.keys(edges[from][to]).sort());
+        // console.log("symbol: ", symbol);
         let tmp_obj = Object.keys(edges[from][to]).sort();
         let modified_symbol = "['";
         for (let i = 0; i < tmp_obj.length; i++) {
@@ -594,6 +585,8 @@ export function minDfa(dfa) {
           }
         }
         modified_symbol += "]";
+        // console.log("modified symbol: ", modified_symbol);
+        // nodes[from].symbols.push(symbol);
         nodes[from].symbols.push(modified_symbol);
         // nodes[from].edges.push([symbol, nodes[to]]);
         nodes[from].edges.push([modified_symbol, nodes[to]]);
@@ -610,11 +603,3 @@ export function minDfa(dfa) {
     partitions = hopcroft(symbols, idMap, revEdges);
   return buildMinNfa(dfa, partitions, idMap, revEdges);
 }
-
-// only change is export parseRegex
-// module.exports = {
-//   parseRegex,
-//   regexToNfa,
-//   minDfa,
-//   nfaToDfa,
-// };

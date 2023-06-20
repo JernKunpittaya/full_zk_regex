@@ -24,7 +24,7 @@ function test() {
   // 2nd regex
   // const regex = "DKI: (([bvad]=([12/]+); )+)bh";
   // 3rd regex
-  const regex = "DKI: (([a-z]=([12/]+); )+)bh";
+  // const regex = "DKI: (([a-z]=([12/]+); )+)bh";
 
   //============================== submatch ==============================================
 
@@ -52,35 +52,39 @@ function test() {
     [61, 70],
   ];
   //============================== Test console.log ==============================================
-
+  // const simp_regex = simplifyRegex(regex)
+  // console.log("simp_regex: ", simp_regex)
+  const regex = String.raw`\\nJohn`
+    .replace(/\\n/g, "\n")
+    .replace(/\\n/g, "\\n");
   // See expanded version of regex
-  const simp_regex = simplifyRegex(regex);
-  console.log("simp_regex: ", simp_regex);
+  console.log("regexxx: ", regex);
+  console.log("simp_regex: ", simplifyRegex(regex));
 
   // See if the submatches array we define is actually what we want
-  readSubmatch(regex, submatches);
+  // readSubmatch(regex, submatches);
 
-  // Show that the resutl of submatch extraction is correct
-  finalRegexExtractState(regex, submatches, text);
+  // // Show that the resutl of submatch extraction is correct
+  // finalRegexExtractState(regex, submatches, text);
 
-  // Test our tagged graph construction from m1 - m4 stuffs, especially m3, m4
-  const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
-  // console.log("m1: ", tagged_simp_graph);
-  let m2_graph = M1ToM2(tagged_simp_graph);
-  // console.log("m2 jya: ", m2_graph);
-  let m3_graph = M2ToM3(m2_graph);
-  // console.log("m3 jya: ", m3_graph);
-  let m4_graph = createM4(tagged_simp_graph);
-  let tagged_m4_graph = registerToState(m4_graph);
-  // console.log("tagged m4: ", tagged_m4_graph);
-  let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
-  console.log("final m3: ", final_m3_m4["final_m3_graph"]);
-  console.log("final m4: ", final_m3_m4["final_m4_graph"]);
+  // // Test our tagged graph construction from m1 - m4 stuffs, especially m3, m4
+  // const tagged_simp_graph = tagged_simplifyGraph(regex, submatches);
+  // // console.log("m1: ", tagged_simp_graph);
+  // let m2_graph = M1ToM2(tagged_simp_graph);
+  // // console.log("m2 jya: ", m2_graph);
+  // let m3_graph = M2ToM3(m2_graph);
+  // // console.log("m3 jya: ", m3_graph);
+  // let m4_graph = createM4(tagged_simp_graph);
+  // let tagged_m4_graph = registerToState(m4_graph);
+  // // console.log("tagged m4: ", tagged_m4_graph);
+  // let final_m3_m4 = reassignM3M4(m3_graph, tagged_m4_graph);
+  // // console.log("final m3: ", final_m3_m4["final_m3_graph"]);
+  // // console.log("final m4: ", final_m3_m4["final_m4_graph"]);
 
-  // Test generate circom circuit
-  // console.log("circom here: ");
-  let circom = gen_circom(regex, submatches);
-  console.log(circom);
+  // // Test generate circom circuit
+  // // console.log("circom here: ");
+  // let circom = gen_circom(regex, submatches);
+  // console.log(circom);
 
   console.log("Done Testing!");
 }

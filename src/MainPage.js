@@ -51,35 +51,65 @@ export const MainPage = () => {
   const [replMsg, setReplMsg] = useState("");
   const [replMsgLen, setReplMsgLen] = useState("");
 
+  function replaceSpecialChar(string) {
+    return String.raw`${string}`
+      .replace(/(\\+)(n)/g, (match, backslashes, n) => {
+        if (backslashes.length % 2 === 0) {
+          // Even number of backslashes before n
+          return "\\".repeat(backslashes.length) + "n";
+        } else {
+          // Odd number of backslashes before n
+          return "\\".repeat(backslashes.length - 1) + "\n";
+        }
+      })
+      .replace(/(\\+)(t)/g, (match, backslashes, n) => {
+        if (backslashes.length % 2 === 0) {
+          // Even number of backslashes before t
+          return "\\".repeat(backslashes.length) + "t";
+        } else {
+          // Odd number of backslashes before t
+          return "\\".repeat(backslashes.length - 1) + "\t";
+        }
+      })
+      .replace(/(\\+)(r)/g, (match, backslashes, n) => {
+        if (backslashes.length % 2 === 0) {
+          // Even number of backslashes before r
+          return "\\".repeat(backslashes.length) + "r";
+        } else {
+          // Odd number of backslashes before r
+          return "\\".repeat(backslashes.length - 1) + "\r";
+        }
+      })
+      .replace(/(\\+)(v)/g, (match, backslashes, n) => {
+        if (backslashes.length % 2 === 0) {
+          // Even number of backslashes before v
+          return "\\".repeat(backslashes.length) + "v";
+        } else {
+          // Odd number of backslashes before v
+          return "\\".repeat(backslashes.length - 1) + "\v";
+        }
+      })
+      .replace(/(\\+)(f)/g, (match, backslashes, n) => {
+        if (backslashes.length % 2 === 0) {
+          // Even number of backslashes before f
+          return "\\".repeat(backslashes.length) + "f";
+        } else {
+          // Odd number of backslashes before f
+          return "\\".repeat(backslashes.length - 1) + "\f";
+        }
+      });
+  }
   function generateSegments(regex) {
-    const graph = simplifyGraph(
-      String.raw`${regex}`
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\r/g, "\r")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
-    );
+    const graph = simplifyGraph(replaceSpecialChar(regex));
     return findSubstrings(graph, text);
   }
   function generateTaggedDFA(regex, submatches) {
     const tagged_simp_graph = tagged_simplifyGraph(
-      String.raw`${regex}`
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\r/g, "\r")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c"),
+      replaceSpecialChar(regex),
       submatches
     );
-    const matched_dfa = generateSegments(
-      String.raw`${regex}`
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\r/g, "\r")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
-    );
+
+    const matched_dfa = generateSegments(replaceSpecialChar(regex));
     let tagged_dictionary = {};
     for (const subs of matched_dfa[1]) {
       let matched = text.slice(subs[0], subs[1] + 1);
@@ -109,30 +139,23 @@ export const MainPage = () => {
   // ========================= DFA function ======================
   function handleGenerateDFA() {
     // Generate graph parameters
-    const graph = simplifyGraph(
-      String.raw`${regex}`
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\r/g, "\r")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c")
-    );
+
+    const graph = simplifyGraph(replaceSpecialChar(regex));
     setRawDFA(graph);
   }
   function handleGenerateSimpleRegex() {
     // console.log("b4: ", regex);
     // console.log("simppp: ", simplifyRegex(regex));
     // console.log("simp22: ", simplifyRegex(regex.replace(/\\n/g, "\n")));
-    setSimpleRegex(
-      simplifyRegex(
-        String.raw`${regex}`
-          .replace(/\\n/g, "\n")
-          .replace(/\\t/g, "\t")
-          .replace(/\\r/g, "\r")
-          .replace(/\\x0b/g, "\x0b")
-          .replace(/\\x0c/g, "\x0c")
-      )
-    );
+
+    // console.log("b4 simplify regex: ", replaceSpecialChar(regex));
+
+    // console.log(
+    //   "after simplify regex: ",
+    //   simplifyRegex(replaceSpecialChar(regex))
+    // );
+
+    setSimpleRegex(simplifyRegex(replaceSpecialChar(regex)));
   }
 
   useEffect(() => {
@@ -200,15 +223,9 @@ export const MainPage = () => {
   }
   function handleGenerateCircom(event) {
     event.preventDefault();
-    const text = gen_circom(
-      String.raw`${regex}`
-        .replace(/\\n/g, "\n")
-        .replace(/\\t/g, "\t")
-        .replace(/\\r/g, "\r")
-        .replace(/\\x0b/g, "\x0b")
-        .replace(/\\x0c/g, "\x0c"),
-      submatchesArr
-    );
+
+    const text = gen_circom(replaceSpecialChar(regex));
+
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     saveAs(blob, "circom.txt");
   }
@@ -286,10 +303,11 @@ export const MainPage = () => {
           label="Enter your regex here:"
           value={regex}
           onChange={(e) => {
-            //   console.log("jernjaa input: ");
-            //   console.log(e.currentTarget.value);
+            console.log("regex input: ");
+            console.log(e.currentTarget.value);
+            console.log(String.raw`${e.currentTarget.value}`);
             setRegex(e.currentTarget.value);
-            //   console.log("regex ", regex);
+            // console.log("regex stored: ", regex);
           }}
         />
         <Button

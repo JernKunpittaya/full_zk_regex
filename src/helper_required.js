@@ -3,12 +3,9 @@
 const a2z = "a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z";
 const A2Z = "A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z";
 const r0to9 = "0|1|2|3|4|5|6|7|8|9";
-
 const alphanum = `${a2z}|${A2Z}|${r0to9}`;
 
 const key_chars = `(${a2z})`;
-// hypothesis: is key_chars in email only limit to these chars below?
-const succ_key_chars = "(v|a|c|d|s|t|h)";
 const catch_all =
   "(0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|!|\"|#|$|%|&|'|\\(|\\)|\\*|\\+|,|-|.|\\/|:|;|<|=|>|\\?|@|\\[|\\\\|]|^|_|`|{|\\||}|~| |\t|\n|\r|\x0b|\x0c)";
 // Not the same: \\[ and ]
@@ -18,20 +15,35 @@ const catch_all_without_semicolon =
 const email_chars = `${alphanum}|_|.|-`;
 const base_64 = `(${alphanum}|\\+|\\/|=)`;
 const word_char = `(${alphanum}|_)`;
+
 const a2z_nosep = "abcdefghijklmnopqrstuvwxyz";
 const A2Z_nosep = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const a2f_nosep = "abcdef";
+const A2F_nosep = "ABCDEF";
 const r0to9_nosep = "0123456789";
 const email_address_regex = `([a-zA-Z0-9._%\\+-]+@[a-zA-Z0-9.-]+.[a-zA-Z0-9]+)`;
+
+// TODO: Note that this is replicated code in lexical.js as well
+// Note that ^ has to be manually replaced with \x80 in the regex
+const escapeMap = { n: "\n", r: "\r", t: "\t", v: "\v", f: "\f" };
+let whitespace = Object.values(escapeMap);
+const slash_s = whitespace.join("|");
 
 // =================================== Parse Param region =========================================
 // Parse a certain format of regex
 export function simplifyRegex(str) {
+  // console.log("inside regex: ", str.replace(/\\\\/g, "\\"));
+  // str = str.replace(/\\\\/g, "\\");
   // Replace all A-Z with A2Z etc
   let combined_nosep = str
     .replaceAll("A-Z", A2Z_nosep)
     .replaceAll("a-z", a2z_nosep)
+    .replaceAll("A-F", A2F_nosep)
+    .replaceAll("a-f", a2f_nosep)
     .replaceAll("0-9", r0to9_nosep)
-    .replaceAll("\\w", A2Z_nosep + r0to9_nosep + a2z_nosep);
+    .replaceAll("\\w", A2Z_nosep + r0to9_nosep + a2z_nosep + "_")
+    .replaceAll("\\d", r0to9_nosep)
+    .replaceAll("\\s", slash_s);
 
   function addPipeInsideBrackets(str) {
     let result = "";
@@ -58,6 +70,7 @@ export function simplifyRegex(str) {
         index++;
         currChar = str[index];
         // in case with escape +
+        // add extra layer of \\ since it needs to be parsed into simplifyPlus function
         if (currChar === "+") {
           currChar = "\\+";
         }

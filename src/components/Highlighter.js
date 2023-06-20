@@ -35,6 +35,7 @@ export const Highlighter = ({
   setNewColor,
   staticHighlights,
 }) => {
+  // console.log("Highlighter regex: ", sampleRegex);
   const [isHighlighting, setIsHighlighting] = useState(false);
   const [highlightedIndices, setHighlightedIndices] = useState([]);
   const [highlightName, setHighlightName] = useState("");
@@ -124,8 +125,7 @@ export const Highlighter = ({
                 key={index}
                 style={{
                   color: color,
-                }}
-              >
+                }}>
                 {char}
               </span>
             );
@@ -146,8 +146,7 @@ export const Highlighter = ({
                     : "transparent",
                   color: color,
                 }}
-                onClick={() => handleHighlight(index)}
-              >
+                onClick={() => handleHighlight(index)}>
                 {char}
               </span>
             );
@@ -157,8 +156,7 @@ export const Highlighter = ({
 
       <Button
         style={{ marginTop: "20px" }}
-        onClick={isHighlighting ? handleEndHighlight : handleBeginHighlight}
-      >
+        onClick={isHighlighting ? handleEndHighlight : handleBeginHighlight}>
         {isHighlighting ? "End Regex Highlight" : "Begin Regex Highlight"}
       </Button>
     </div>
