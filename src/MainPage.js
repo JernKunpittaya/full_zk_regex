@@ -255,6 +255,7 @@ export const MainPage = () => {
   return (
     <div>
       <h1>ZK RegEX</h1>
+      <a href="https://github.com/JernKunpittaya/full_zk_regex">Repo</a>
       <textInfo>
         <Line>How to use zk RegEx</Line>
         <Line>
