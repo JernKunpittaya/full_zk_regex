@@ -1,7 +1,7 @@
 # full_zk_regex
 
 Presentation: [WIP]  
-Slide: [WIP] https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
+Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
 
 We allow users to easily create circom circuit to reveal submatch. After a few steps on frontend, we can deal with our newly baked circom circuit by
 
@@ -87,7 +87,7 @@ m3 graph is the reverted version of m2 to run on backward text. For each alphabe
 
 m4 graph is similar to m2 but the transition alphabet is m3 state instead, and for each transition it has register that store the start and end index of string that falls under that certain submatch.
 
-4. After gettting m4 as in paper, we transform the graph that extract subgroup by register into specifying which state transition is included in each tag (this process also allows us to detect multiple occurences of strings in the same submatch naturally). Then, we reassign the state number of m3 and m4 to become just plain consecutive numbers.
+4. After gettting m4 as in paper, we transform the graph that extract submatch by register into specifying which state transition is included in each tag (this process also allows us to detect multiple occurences of strings in the same submatch naturally). Then, we reassign the state number of m3 and m4 to become just plain consecutive numbers.
 
    let tagged_m4_graph = registerToState(m4_graph);
 

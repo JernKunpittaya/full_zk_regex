@@ -264,13 +264,10 @@ export const MainPage = () => {
         </Line>
         <Line>
           2. Fill the regex field with the regex you want to match but with
-          explicit syntax like \\n to represent new line instead of using
-          original format like the text field.
+          explicit syntax like \n to represent new line instead of using
+          original format like the text field. (same for \r, \t, \v,\f)
         </Line>
-        <Line>
-          Syntax like \\n, \\r, \\t are double slashes, while other escape chars
-          like \”, \*, \+, ... are single slash
-        </Line>
+        <Line>Escape chars are escaped with \ e.g. \”, \*, \+, ...</Line>
         <Line>
           3. When defining regex with * and + for subgroup match, write () over
           that subgroup we are interested in e.g. ((a|b|c)+)
@@ -281,11 +278,15 @@ export const MainPage = () => {
         </Line>
         <Line>
           5. Highlight "Regex to be Highlighted" by clicking "Begin Regex
-          Highlight", then choose two points as subgroup boundary we want to
-          match, then click "End Regex Highlight" to name the subgroup we are
-          extracting.
+          Highlight", then choose two points as subgroup inclusive boundary we
+          want to match, then click "End Regex Highlight" to name the subgroup
+          we are extracting.
         </Line>
         <Line>6. Repeat Step 5, If done, just "Download Circom" and DONE!</Line>
+        <Line>
+          7. We also have msg generator at the bottom, in case you want to
+          generate msg for testing with zkrepl.dev{" "}
+        </Line>
       </textInfo>
       <Container>
         <TextInput
