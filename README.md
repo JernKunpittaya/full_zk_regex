@@ -1,6 +1,6 @@
 # full_zk_regex
 
-Presentation: [WIP]  
+Presentation: https://www.loom.com/share/1619d89a33b04e03baf4e38e7fb7cbe3?sid=a5abd923-ce74-4570-a472-ec7d25a539aa
 Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
 
 We allow users to easily create circom circuit to reveal submatch. After a few steps on frontend, we can deal with our newly baked circom circuit by
