@@ -1,7 +1,6 @@
 # full_zk_regex
 
-Presentation: https://www.loom.com/share/1619d89a33b04e03baf4e38e7fb7cbe3?sid=a5abd923-ce74-4570-a472-ec7d25a539aa
-
+Presentation: https://drive.google.com/file/d/1MFT7BZmB7wgMqhr_AgT_60dukdG_0v9P/view
 Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
 
 
