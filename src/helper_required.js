@@ -123,7 +123,6 @@ export function simplifyRegex(str) {
 // Parse + in regex like a+ to include both (a) and (a*), giving submatch that includes
 // all alphabet in + correctly
 export function simplifyPlus(regex, submatches) {
-  // console.log("og submatches: ", submatches);
   let stack = [];
   let new_submatches = {};
   // console.log("gen dfa: ", submatches);

@@ -224,7 +224,7 @@ export const MainPage = () => {
   function handleGenerateCircom(event) {
     event.preventDefault();
 
-    const text = gen_circom(replaceSpecialChar(regex));
+    const text = gen_circom(replaceSpecialChar(regex), submatchesArr);
 
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     saveAs(blob, "circom.txt");
