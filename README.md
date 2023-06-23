@@ -121,13 +121,18 @@ However, in this project, we needs the naive minimized DFA without tag to get th
   
 ## Future Work
 Algorithm: 
--We are already at linear with msg_byte*state number (same complexity as naive zk regex), and we know that we need to run at least 2 rounds of state machine, one to run reversed version and store state change, while the other is to use that stored state to run through the forward state machine. However, currently to help write circom, we run the other round of naive DFA forward first to find the last alphabet to help keep state change of reversed DFA. We should try to cut this round out to reduce to just 2 rounds of state machine run.
--As Aayush suggests, we should optimize Circom via LessThan gate by changing from 47 <x <52 to x-47 < 5 [trivial], and optimize by storing repeated check computation in register to be optimized for one check.
--Generalize to be able to match more than 1 regex & reveal multiple submatches at the same time. Because currently, we assume that regex is so well-defined that it just matches one regex in the whole text. Although we allow multiple subgroups, we need to specify match_idx to choose which occurence of that subgroup to be revealed, we are thinking about able to reveal multiple match_idx or even multiple subgroup all at same time.
+
+- We are already at linear with msg_byte*state number (same complexity as naive zk regex), and we know that we need to run at least 2 rounds of state machine, one to run reversed version and store state change, while the other is to use that stored state to run through the forward state machine. However, currently to help write circom, we run the other round of naive DFA forward first to find the last alphabet to help keep state change of reversed DFA. We should try to cut this round out to reduce to just 2 rounds of state machine run.
+  
+- As Aayush suggests, we should optimize Circom via LessThan gate by changing from 47 <x <52 to x-47 < 5 [trivial], and optimize by storing repeated check computation in register to be optimized for one check.
+  
+- Generalize to be able to match more than 1 regex & reveal multiple submatches at the same time. Because currently, we assume that regex is so well-defined that it just matches one regex in the whole text. Although we allow multiple subgroups, we need to specify match_idx to choose which occurence of that subgroup to be revealed, we are thinking about able to reveal multiple match_idx or even multiple subgroup all at same time.
 
 UX/UI
--Currently, to specify submatch, users must select two positions as the inclusive boundary for that submatch, we should make it possible for people to be able to just highlight submatch they want. 
--Be more descriptive at error handling, potentially once users highlight submatch regex, it can immediately flag out why that submatch highlight or even regex is in wrong format (like missing parentheses) or not supported.
+
+- Currently, to specify submatch, users must select two positions as the inclusive boundary for that submatch, we should make it possible for people to be able to just highlight submatch they want.
+
+- Be more descriptive at error handling, potentially once users highlight submatch regex, it can immediately flag out why that submatch highlight or even regex is in wrong format (like missing parentheses) or not supported.
 
 
 ## Optional
