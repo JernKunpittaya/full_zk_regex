@@ -96,7 +96,7 @@ export function gen_circom(regex, submatches) {
         new Set([...uppercase].filter((x) => forw_vals.has(x))).size ===
         uppercase.size
       ) {
-        //Optimize
+        //Optimize repeated LessThan
         forw_vals = new Set([...forw_vals].filter((x) => !uppercase.has(x)));
         if (forw_upper < 0) {
           forw_lines.push("\t//UPPERCASE");
