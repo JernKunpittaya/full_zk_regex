@@ -77,6 +77,9 @@ export function gen_circom(regex, submatches) {
   let forw_lt_i = 0;
   let forw_and_i = 0;
   let forw_multi_or_i = 0;
+  let forw_upper = -1;
+  let forw_lower = -1;
+  let forw_digit = -1;
 
   let forw_lines = [];
   const uppercase = new Set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""));
@@ -93,79 +96,103 @@ export function gen_circom(regex, submatches) {
         new Set([...uppercase].filter((x) => forw_vals.has(x))).size ===
         uppercase.size
       ) {
+        //Optimize
         forw_vals = new Set([...forw_vals].filter((x) => !uppercase.has(x)));
-        forw_lines.push("\t//UPPERCASE");
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i] = LessThan(8);`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[0] <== 64;`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[1] <== in[i];`);
+        if (forw_upper < 0) {
+          forw_lines.push("\t//UPPERCASE");
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i] = LessThan(8);`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[0] <== 64;`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[1] <== in[i];`);
 
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i] = LessThan(8);`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[0] <== in[i];`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[1] <== 91;`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i] = LessThan(8);`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[0] <== in[i];`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[1] <== 91;`);
 
-        forw_lines.push(`\tforw_and[${forw_and_i}][i] = AND();`);
-        forw_lines.push(
-          `\tforw_and[${forw_and_i}][i].a <== forw_lt[${forw_lt_i}][i].out;`
-        );
-        forw_lines.push(
-          `\tforw_and[${forw_and_i}][i].b <== forw_lt[${forw_lt_i + 1}][i].out;`
-        );
+          forw_lines.push(`\tforw_and[${forw_and_i}][i] = AND();`);
+          forw_lines.push(
+            `\tforw_and[${forw_and_i}][i].a <== forw_lt[${forw_lt_i}][i].out;`
+          );
+          forw_lines.push(
+            `\tforw_and[${forw_and_i}][i].b <== forw_lt[${
+              forw_lt_i + 1
+            }][i].out;`
+          );
 
-        forw_eq_outputs.push(["forw_and", forw_and_i]);
-        forw_lt_i += 2;
-        forw_and_i += 1;
+          forw_eq_outputs.push(["forw_and", forw_and_i]);
+          forw_upper = forw_and_i;
+          forw_lt_i += 2;
+          forw_and_i += 1;
+        } else {
+          forw_eq_outputs.push(["forw_and", forw_upper]);
+        }
       }
       if (
         new Set([...lowercase].filter((x) => forw_vals.has(x))).size ===
         lowercase.size
       ) {
+        // Optimize
         forw_vals = new Set([...forw_vals].filter((x) => !lowercase.has(x)));
-        forw_lines.push("\t//lowercase");
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i] = LessThan(8);`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[0] <== 96;`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[1] <== in[i];`);
+        if (forw_lower < 0) {
+          forw_lines.push("\t//lowercase");
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i] = LessThan(8);`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[0] <== 96;`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[1] <== in[i];`);
 
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i] = LessThan(8);`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[0] <== in[i];`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[1] <== 123;`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i] = LessThan(8);`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[0] <== in[i];`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[1] <== 123;`);
 
-        forw_lines.push(`\tforw_and[${forw_and_i}][i] = AND();`);
-        forw_lines.push(
-          `\tforw_and[${forw_and_i}][i].a <== forw_lt[${forw_lt_i}][i].out;`
-        );
-        forw_lines.push(
-          `\tforw_and[${forw_and_i}][i].b <== forw_lt[${forw_lt_i + 1}][i].out;`
-        );
+          forw_lines.push(`\tforw_and[${forw_and_i}][i] = AND();`);
+          forw_lines.push(
+            `\tforw_and[${forw_and_i}][i].a <== forw_lt[${forw_lt_i}][i].out;`
+          );
+          forw_lines.push(
+            `\tforw_and[${forw_and_i}][i].b <== forw_lt[${
+              forw_lt_i + 1
+            }][i].out;`
+          );
 
-        forw_eq_outputs.push(["forw_and", forw_and_i]);
-        forw_lt_i += 2;
-        forw_and_i += 1;
+          forw_eq_outputs.push(["forw_and", forw_and_i]);
+          forw_lower = forw_and_i;
+          forw_lt_i += 2;
+          forw_and_i += 1;
+        } else {
+          forw_eq_outputs.push(["forw_and", forw_lower]);
+        }
       }
       if (
         new Set([...digits].filter((x) => forw_vals.has(x))).size ===
         digits.size
       ) {
+        // Optimize
         forw_vals = new Set([...forw_vals].filter((x) => !digits.has(x)));
-        forw_lines.push("\t//digits");
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i] = LessThan(8);`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[0] <== 47;`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[1] <== in[i];`);
+        if (forw_digit < 0) {
+          forw_lines.push("\t//digits");
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i] = LessThan(8);`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[0] <== 47;`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i}][i].in[1] <== in[i];`);
 
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i] = LessThan(8);`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[0] <== in[i];`);
-        forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[1] <== 58;`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i] = LessThan(8);`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[0] <== in[i];`);
+          forw_lines.push(`\tforw_lt[${forw_lt_i + 1}][i].in[1] <== 58;`);
 
-        forw_lines.push(`\tforw_and[${forw_and_i}][i] = AND();`);
-        forw_lines.push(
-          `\tforw_and[${forw_and_i}][i].a <== forw_lt[${forw_lt_i}][i].out;`
-        );
-        forw_lines.push(
-          `\tforw_and[${forw_and_i}][i].b <== forw_lt[${forw_lt_i + 1}][i].out;`
-        );
+          forw_lines.push(`\tforw_and[${forw_and_i}][i] = AND();`);
+          forw_lines.push(
+            `\tforw_and[${forw_and_i}][i].a <== forw_lt[${forw_lt_i}][i].out;`
+          );
+          forw_lines.push(
+            `\tforw_and[${forw_and_i}][i].b <== forw_lt[${
+              forw_lt_i + 1
+            }][i].out;`
+          );
 
-        forw_eq_outputs.push(["forw_and", forw_and_i]);
-        forw_lt_i += 2;
-        forw_and_i += 1;
+          forw_eq_outputs.push(["forw_and", forw_and_i]);
+          forw_digit = forw_and_i;
+          forw_lt_i += 2;
+          forw_and_i += 1;
+        } else {
+          forw_eq_outputs.push(["forw_and", forw_digit]);
+        }
       }
       for (let c of forw_vals) {
         // to make sure just one alphabet, in backend
@@ -319,6 +346,9 @@ export function gen_circom(regex, submatches) {
   let m3_lt_i = 0;
   let m3_and_i = 0;
   let m3_multi_or_i = 0;
+  let m3_upper = -1;
+  let m3_lower = -1;
+  let m3_digit = -1;
 
   let m3_lines = [];
   m3_lines.push("for (var i = 0; i < msg_bytes; i++) {");
@@ -332,78 +362,96 @@ export function gen_circom(regex, submatches) {
         new Set([...uppercase].filter((x) => m3_vals.has(x))).size ===
         uppercase.size
       ) {
+        // Optimize
         m3_vals = new Set([...m3_vals].filter((x) => !uppercase.has(x)));
-        m3_lines.push("\t//UPPERCASE");
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i] = LessThan(8);`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[0] <== 64;`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[1] <== m3_in[i];`);
+        if (m3_upper < 0) {
+          m3_lines.push("\t//UPPERCASE");
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i] = LessThan(8);`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[0] <== 64;`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[1] <== m3_in[i];`);
 
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i] = LessThan(8);`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[0] <== m3_in[i];`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[1] <== 91;`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i] = LessThan(8);`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[0] <== m3_in[i];`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[1] <== 91;`);
 
-        m3_lines.push(`\tm3_and[${m3_and_i}][i] = AND();`);
-        m3_lines.push(
-          `\tm3_and[${m3_and_i}][i].a <== m3_lt[${m3_lt_i}][i].out;`
-        );
-        m3_lines.push(
-          `\tm3_and[${m3_and_i}][i].b <== m3_lt[${m3_lt_i + 1}][i].out;`
-        );
+          m3_lines.push(`\tm3_and[${m3_and_i}][i] = AND();`);
+          m3_lines.push(
+            `\tm3_and[${m3_and_i}][i].a <== m3_lt[${m3_lt_i}][i].out;`
+          );
+          m3_lines.push(
+            `\tm3_and[${m3_and_i}][i].b <== m3_lt[${m3_lt_i + 1}][i].out;`
+          );
 
-        m3_eq_outputs.push(["m3_and", m3_and_i]);
-        m3_lt_i += 2;
-        m3_and_i += 1;
+          m3_eq_outputs.push(["m3_and", m3_and_i]);
+          m3_upper = m3_and_i;
+          m3_lt_i += 2;
+          m3_and_i += 1;
+        } else {
+          m3_eq_outputs.push(["m3_and", m3_upper]);
+        }
       }
       if (
         new Set([...lowercase].filter((x) => m3_vals.has(x))).size ===
         lowercase.size
       ) {
+        // Optimize
         m3_vals = new Set([...m3_vals].filter((x) => !lowercase.has(x)));
-        m3_lines.push("\t//lowercase");
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i] = LessThan(8);`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[0] <== 96;`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[1] <== m3_in[i];`);
+        if (m3_lower < 0) {
+          m3_lines.push("\t//lowercase");
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i] = LessThan(8);`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[0] <== 96;`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[1] <== m3_in[i];`);
 
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i] = LessThan(8);`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[0] <== m3_in[i];`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[1] <== 123;`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i] = LessThan(8);`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[0] <== m3_in[i];`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[1] <== 123;`);
 
-        m3_lines.push(`\tm3_and[${m3_and_i}][i] = AND();`);
-        m3_lines.push(
-          `\tm3_and[${m3_and_i}][i].a <== m3_lt[${m3_lt_i}][i].out;`
-        );
-        m3_lines.push(
-          `\tm3_and[${m3_and_i}][i].b <== m3_lt[${m3_lt_i + 1}][i].out;`
-        );
+          m3_lines.push(`\tm3_and[${m3_and_i}][i] = AND();`);
+          m3_lines.push(
+            `\tm3_and[${m3_and_i}][i].a <== m3_lt[${m3_lt_i}][i].out;`
+          );
+          m3_lines.push(
+            `\tm3_and[${m3_and_i}][i].b <== m3_lt[${m3_lt_i + 1}][i].out;`
+          );
 
-        m3_eq_outputs.push(["m3_and", m3_and_i]);
-        m3_lt_i += 2;
-        m3_and_i += 1;
+          m3_eq_outputs.push(["m3_and", m3_and_i]);
+          m3_lower = m3_and_i;
+          m3_lt_i += 2;
+          m3_and_i += 1;
+        } else {
+          m3_eq_outputs.push(["m3_and", m3_lower]);
+        }
       }
       if (
         new Set([...digits].filter((x) => m3_vals.has(x))).size === digits.size
       ) {
+        // Optimize
         m3_vals = new Set([...m3_vals].filter((x) => !digits.has(x)));
-        m3_lines.push("\t//digits");
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i] = LessThan(8);`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[0] <== 47;`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[1] <== m3_in[i];`);
+        if (m3_digit < 0) {
+          m3_lines.push("\t//digits");
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i] = LessThan(8);`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[0] <== 47;`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i}][i].in[1] <== m3_in[i];`);
 
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i] = LessThan(8);`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[0] <== m3_in[i];`);
-        m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[1] <== 58;`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i] = LessThan(8);`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[0] <== m3_in[i];`);
+          m3_lines.push(`\tm3_lt[${m3_lt_i + 1}][i].in[1] <== 58;`);
 
-        m3_lines.push(`\tm3_and[${m3_and_i}][i] = AND();`);
-        m3_lines.push(
-          `\tm3_and[${m3_and_i}][i].a <== m3_lt[${m3_lt_i}][i].out;`
-        );
-        m3_lines.push(
-          `\tm3_and[${m3_and_i}][i].b <== m3_lt[${m3_lt_i + 1}][i].out;`
-        );
+          m3_lines.push(`\tm3_and[${m3_and_i}][i] = AND();`);
+          m3_lines.push(
+            `\tm3_and[${m3_and_i}][i].a <== m3_lt[${m3_lt_i}][i].out;`
+          );
+          m3_lines.push(
+            `\tm3_and[${m3_and_i}][i].b <== m3_lt[${m3_lt_i + 1}][i].out;`
+          );
 
-        m3_eq_outputs.push(["m3_and", m3_and_i]);
-        m3_lt_i += 2;
-        m3_and_i += 1;
+          m3_eq_outputs.push(["m3_and", m3_and_i]);
+          m3_digit = m3_and_i;
+          m3_lt_i += 2;
+          m3_and_i += 1;
+        } else {
+          m3_eq_outputs.push(["m3_and", m3_digit]);
+        }
       }
       for (let c of m3_vals) {
         // to make sure just one alphabet (for backend)
@@ -584,51 +632,7 @@ export function gen_circom(regex, submatches) {
     for (let [k, prev_i] of m4_circom_graph["rev_transitions"][i]) {
       let vals = new Set(JSON.parse(k));
       const eq_outputs = [];
-
-      if (
-        new Set([...uppercase].filter((x) => vals.has(x))).size ===
-        uppercase.size
-      ) {
-        vals = new Set([...vals].filter((x) => !uppercase.has(x)));
-        lines.push("\t//UPPERCASE");
-        lines.push(`\tlt[${lt_i}][i] = LessThan(8);`);
-        lines.push(`\tlt[${lt_i}][i].in[0] <== 64;`);
-        lines.push(`\tlt[${lt_i}][i].in[1] <== m3_states_num[i];`);
-
-        lines.push(`\tlt[${lt_i + 1}][i] = LessThan(8);`);
-        lines.push(`\tlt[${lt_i + 1}][i].in[0] <== m3_states_num[i];`);
-        lines.push(`\tlt[${lt_i + 1}][i].in[1] <== 91;`);
-
-        lines.push(`\tand[${and_i}][i] = AND();`);
-        lines.push(`\tand[${and_i}][i].a <== lt[${lt_i}][i].out;`);
-        lines.push(`\tand[${and_i}][i].b <== lt[${lt_i + 1}][i].out;`);
-
-        eq_outputs.push(["and", and_i]);
-        lt_i += 2;
-        and_i += 1;
-      }
-      if (
-        new Set([...lowercase].filter((x) => vals.has(x))).size ===
-        lowercase.size
-      ) {
-        vals = new Set([...vals].filter((x) => !lowercase.has(x)));
-        lines.push("\t//lowercase");
-        lines.push(`\tlt[${lt_i}][i] = LessThan(8);`);
-        lines.push(`\tlt[${lt_i}][i].in[0] <== 96;`);
-        lines.push(`\tlt[${lt_i}][i].in[1] <== m3_states_num[i];`);
-
-        lines.push(`\tlt[${lt_i + 1}][i] = LessThan(8);`);
-        lines.push(`\tlt[${lt_i + 1}][i].in[0] <== m3_states_num[i];`);
-        lines.push(`\tlt[${lt_i + 1}][i].in[1] <== 123;`);
-
-        lines.push(`\tand[${and_i}][i] = AND();`);
-        lines.push(`\tand[${and_i}][i].a <== lt[${lt_i}][i].out;`);
-        lines.push(`\tand[${and_i}][i].b <== lt[${lt_i + 1}][i].out;`);
-
-        eq_outputs.push(["and", and_i]);
-        lt_i += 2;
-        and_i += 1;
-      }
+      // since we use stored states as alphabet, so the transition only consists of numbers
       if (
         new Set([...digits].filter((x) => vals.has(x))).size === digits.size
       ) {
