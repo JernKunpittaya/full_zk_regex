@@ -888,7 +888,8 @@ export function gen_circom(regex, submatches) {
     tpl_end.join("\n\t") +
     "\n}";
   final_text +=
-    "\n\n//Note: in = text, match_idx = occurence of that subgroup matching we want to match, Regex(max_msg_bytes, max_reveal_bytes, subgroup index)";
+    "\n\n//Note: in = text, match_idx = occurence of that subgroup matching we want to match, Regex(max_msg_bytes, max_reveal_bytes, group_idx)" +
+    "\n\n//where max_msg_bytes = maximum byte we allow on input text, max_reveal_bytes = maximum byte we allow on revealing the submatch, group_idx = to tell which submatch we are interested in.";
   final_text +=
     "\ncomponent main { public [in, match_idx] } = Regex(100, 44,1);";
   return final_text;

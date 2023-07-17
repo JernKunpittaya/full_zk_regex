@@ -1,19 +1,36 @@
 # full_zk_regex
 
-Presentation: https://drive.google.com/file/d/1MFT7BZmB7wgMqhr_AgT_60dukdG_0v9P/view
+Presentation [just 10 Min!]: https://drive.google.com/file/d/1MFT7BZmB7wgMqhr_AgT_60dukdG_0v9P/view
 
 Slide: https://docs.google.com/presentation/d/1nSZdmwDKXjEM6bP6WBYyAWbCgK4cjpm-SXqDAA-MOjE/edit?usp=sharing
 
-
 ## Summary
 
-We allow users to easily create circom circuit to reveal submatch. After a few steps on frontend, we can deal with our newly baked circom circuit by
+We allow developers to instantly create circom circuit that can both match regex and reveal the submatch they are interested in, without needing to manually mark the states from regex state machine.(See more issues our approach has solved in presentation or slide above!) After a few steps on frontend as shown in presentation, developers can use their newly baked circom circuit by
 
-component main { public [in, match_idx] } = Regex(max_msg_byte,max_reveal_byte,group_idx);
+component main { public [in, match_idx] } = Regex(max_msg_byte, max_reveal_byte, group_idx);
 
-where in is the whole text, match_idx is to tell which occurance of a certain submatch we are interested in, and group_idx is to tell which submatch we are interested in.
+where "in" is the whole text, "match_idx" is to tell which occurance of a certain submatch we are interested in, "max_msg_byte" = maximum byte we allow on input text, "max_reveal_bytes" = maximum byte we allow on revealing the submatch, and "group_idx" = to tell which submatch we are interested in.";
 
-## Overview
+## How to Use
+
+1. Fill the text field with the original text format you want to extract subgroup from (have multiple lines and tabs are ok, so just copy your interested text.)
+
+2. Fill the regex field with the regex you want to match but with explicit syntax like \n to represent new line instead of using original format like the text field. (same for \r, \t, \v,\f)
+
+Escape chars are escaped with \ e.g. \”, \*, \+, ...
+
+3. When defining regex with \* and + for subgroup match, write () over that subgroup we are interested in e.g. ((a|b|c)+)
+
+4. Click Match RegEx! to see where in the text that are matched by our regex
+
+5. Highlight "Regex to be Highlighted" by clicking "Begin Regex Highlight", then choose two points as subgroup inclusive boundary we want to match, then click "End Regex Highlight" to name the subgroup we are extracting.
+
+6. Repeat Step 5, If done, just "Download Circom" and DONE!
+
+7. We also have msg generator at the bottom, in case you want to generate msg for testing with zkrepl.dev
+
+## How it works (overview)
 
 Input: regex, submatches, text  
 Output: Return circom that allows us to reveal a specific submatch we defined through frontend.
@@ -51,7 +68,7 @@ Data flow and related functions [All for frontend, except the last one for gener
 
 Note that we can see more tests of calling function in test.js file
 
-## Details
+## How it works (Details)
 
 How to creat circom for extracting submatch in regex.
 
@@ -118,14 +135,12 @@ However, in this project, we needs the naive minimized DFA without tag to get th
 
 - This project assumes that our regex is well-defined that there is only ONE string that match our regex. (But there can be multiple submatches, and multiple substrings for each submatches in that ONE regex match)
 - This project doesn't allow users to decide the algorithm for ambiguous submatch. For example, the text a = b = c, but with submatch [submatch1]=[submatch2], it can be either (a)=(b=c) or (a=b)=c, resulting in ambiguity. In this project, we just choose the first one that we found, but in reality there are tons of ways to define how to break ambiguity. (In paper, they handle ambiguity in submatch by using +/-)
-  
-## Future Work
-Algorithm: 
 
-- We are already at linear with msg_byte*state number (same complexity as naive zk regex), and we know that we need to run at least 2 rounds of state machine, one to run reversed version and store state change, while the other is to use that stored state to run through the forward state machine. However, currently to help write circom, we run the other round of naive DFA forward first to find the last alphabet to help keep state change of reversed DFA. We should try to cut this round out to reduce to just 2 rounds of state machine run.
-  
-- As Aayush suggests, we should optimize Circom via LessThan gate by changing from 47 <x <52 to x-47 < 5 [trivial], and optimize by storing repeated check computation in register to be optimized for one check.
-  
+## Future Work
+
+Algorithm:
+
+- We are already at linear with msg_byte\*state number (same complexity as naive zk regex), and we know that we need to run at least 2 rounds of state machine, one to run reversed version and store state change, while the other is to use that stored state to run through the forward state machine. However, currently to help write circom, we run the other round of naive DFA forward first to find the last alphabet to help keep state change of reversed DFA. We should try to cut this round out to reduce to just 2 rounds of state machine run.
 - Generalize to be able to match more than 1 regex & reveal multiple submatches at the same time. Because currently, we assume that regex is so well-defined that it just matches one regex in the whole text. Although we allow multiple subgroups, we need to specify match_idx to choose which occurence of that subgroup to be revealed, we are thinking about able to reveal multiple match_idx or even multiple subgroup all at same time.
 
 UX/UI
@@ -134,6 +149,9 @@ UX/UI
 
 - Be more descriptive at error handling, potentially once users highlight submatch regex, it can immediately flag out why that submatch highlight or even regex is in wrong format (like missing parentheses) or not supported.
 
+## Update
+
+We already optimize the repeated computation caused by multiple exact same LessThan gate.
 
 ## Optional
 
@@ -145,3 +163,14 @@ UX/UI
   [ [ 15, 31 ], [ 44, 60 ] ]
   ]
   (inclusive)
+
+## Thank You:
+
+This work cannot be completed without these people:
+
+- Aayush & Sampriti for zk regex first version since zk email
+- Anka for frontend code that this demo is built upon.
+- [Katat](https://github.com/zkemail/zk-regex/tree/main) for first version of submatch extraction
+- [Paper](https://www.labs.hpe.com/techreports/2012/HPL-2012-41R1.pdf) for submatch algorithm that we used as foundation.
+- Sora for ideas in zk-regex halo2
+- 0xPARC for making the student research program and vietnam residency (with PSE) possible.
